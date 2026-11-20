@@ -5,6 +5,11 @@ on:
     branches: [main]
   pull_request:
 
+# A newer push to the same branch/PR cancels the run that is still going.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   firmware:
     runs-on: ubuntu-latest
@@ -13,18 +18,18 @@ jobs:
       matrix:
         env: [esp01_1m, nodemcuv2, esp32dev, esp32c3]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/cache@v4
+      - uses: actions/checkout@v7
+      - uses: actions/cache@v6
         with:
           path: ~/.platformio
           key: pio-${{ matrix.env }}-${{ hashFiles('platformio.ini') }}
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - run: pip install platformio
       - name: Build ${{ matrix.env }}
         run: pio run -e ${{ matrix.env }}
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: table-node-${{ matrix.env }}
           path: .pio/build/${{ matrix.env }}/firmware.bin
@@ -33,7 +38,7 @@ jobs:
   native-tests:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Button gestures, retry queue, backoff
         run: |
           g++ -std=c++17 -O1 -Wall -Wextra -Wshadow -Werror -Ifirmware/table_node tests/native/test_button.cpp -o tc_test
@@ -42,8 +47,8 @@ jobs:
   hub:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
       - name: Hub API tests
