@@ -121,6 +121,8 @@ pio run -e esp01_1m -t upload        # or nodemcuv2, esp32dev, esp32c3
 pio device monitor                   # optional: serial log at 115200
 ```
 
+No command line handy? [BugZapper](https://github.com/gumslone/bugzapper) is a small GUI/CLI flasher with a built-in serial monitor for ESP8266/ESP32: build with `pio run -e <env>`, then flash `.pio/build/<env>/firmware.bin` and watch the boot log in one window.
+
 Only `TABLE_ID` changes between nodes. Label each node with its number. ESP-01 flashing needs a USB-serial adapter with GPIO0 pulled to GND while powering up.
 
 ### 4. Test
