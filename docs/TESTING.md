@@ -19,7 +19,7 @@ Tick every box. If one fails, the troubleshooting list at the bottom covers the 
 - [ ] Waiter taps "I'm coming": within ~4 s the LED turns solid and the card turns purple.
 - [ ] "Done" clears the card and the LED goes back to the idle tick.
 - [ ] **Hold 1.5 s**: card turns orange "BILL"; LED shows the double pulse. A call that was pending is upgraded, its timer is not reset.
-- [ ] **Hold 5 s** while a request is pending (not yet answered): request disappears. (A request the waiter already acknowledged is not cancelled by the button.)
+- [ ] **Hold 5 s** while a request is open (answered or not): the request disappears and the LED goes idle.
 - [ ] Press the button 10 times quickly: only one entry appears, nothing crashes.
 - [ ] Table number on the card equals the number printed on the node. (Wrong `TABLE_ID` flashed is the most common mistake.)
 
@@ -34,7 +34,7 @@ Tick every box. If one fails, the troubleshooting list at the bottom covers the 
 ## 4. Guests
 
 - [ ] Scan the table QR: the page shows the right table number in the header.
-- [ ] "Call waiter" turns the card red on the dashboard; "Cancel" removes it as long as no waiter answered.
+- [ ] "Call waiter" turns the card red on the dashboard; "Cancel call" removes it, also after a waiter answered.
 - [ ] Order two items: kitchen view shows a ticket, the bar view only shows the drinks.
 - [ ] Mark an item "cooking" then "ready" in the kitchen: the guest page shows the statuses, the waiter dashboard shows "Ready to serve".
 - [ ] Mark an item "sold out" in the dashboard menu tab: guests can no longer add it (within ~20 s) and the hub refuses a stale cart with HTTP 409.

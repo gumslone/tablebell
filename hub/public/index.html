@@ -55,17 +55,17 @@ h2{font-size:17px;margin:22px 0 6px}
 const L = {
   en: { call: 'Call waiter', callSub: 'for any question', bill: 'Bill, please', billSub: 'we are ready to pay', menu: 'Menu', yours: 'Your orders', yourBill: 'Your bill',
     cartTitle: 'Your order', notePh: 'Note for the kitchen (allergies, …)', back: 'Back', send: 'Send order', table: 'Table', scan: 'Please scan the QR code on your table.',
-    waiting: 'Waiter has been notified', billWait: 'Bill requested', coming: 'A waiter is on the way', cancel: 'Cancel', view: 'View order', total: 'Total', none: 'No orders yet',
+    waiting: 'Waiter has been notified', billWait: 'Bill requested', coming: 'A waiter is on the way', cancel: 'Cancel', cancelCall: 'Cancel call', view: 'View order', total: 'Total', none: 'No orders yet',
     sent: 'Order sent', payHow: 'How would you like to pay?', cash: 'Cash', card: 'Card', payAsked: 'Payment requested: ', soldOut: 'sold out', offline: 'Connection lost, retrying…',
     st: { held: 'waiting for waiter', new: 'received', prep: 'being prepared', ready: 'ready', served: 'served', cancelled: 'cancelled' }, cancelOrder: 'Cancel order', slow: 'Please wait a moment.' },
   de: { call: 'Kellner rufen', callSub: 'bei jeder Frage', bill: 'Zahlen, bitte', billSub: 'wir möchten zahlen', menu: 'Speisekarte', yours: 'Ihre Bestellungen', yourBill: 'Ihre Rechnung',
     cartTitle: 'Ihre Bestellung', notePh: 'Hinweis für die Küche (Allergien, …)', back: 'Zurück', send: 'Bestellung senden', table: 'Tisch', scan: 'Bitte scannen Sie den QR-Code an Ihrem Tisch.',
-    waiting: 'Kellner wurde gerufen', billWait: 'Rechnung angefordert', coming: 'Ein Kellner ist unterwegs', cancel: 'Abbrechen', view: 'Bestellung ansehen', total: 'Summe', none: 'Noch keine Bestellungen',
+    waiting: 'Kellner wurde gerufen', billWait: 'Rechnung angefordert', coming: 'Ein Kellner ist unterwegs', cancel: 'Abbrechen', cancelCall: 'Ruf abbrechen', view: 'Bestellung ansehen', total: 'Summe', none: 'Noch keine Bestellungen',
     sent: 'Bestellung gesendet', payHow: 'Wie möchten Sie zahlen?', cash: 'Bar', card: 'Karte', payAsked: 'Zahlung angefragt: ', soldOut: 'ausverkauft', offline: 'Verbindung verloren, neuer Versuch…',
     st: { held: 'wartet auf Kellner', new: 'erhalten', prep: 'in Zubereitung', ready: 'fertig', served: 'serviert', cancelled: 'storniert' }, cancelOrder: 'Bestellung stornieren', slow: 'Bitte einen Moment warten.' },
   uk: { call: 'Покликати офіціанта', callSub: 'з будь-яким питанням', bill: 'Рахунок, будь ласка', billSub: 'ми готові сплатити', menu: 'Меню', yours: 'Ваші замовлення', yourBill: 'Ваш рахунок',
     cartTitle: 'Ваше замовлення', notePh: 'Примітка для кухні (алергії, …)', back: 'Назад', send: 'Надіслати замовлення', table: 'Столик', scan: 'Скануйте QR-код на вашому столику.',
-    waiting: 'Офіціанта повідомлено', billWait: 'Рахунок запрошено', coming: 'Офіціант іде до вас', cancel: 'Скасувати', view: 'Переглянути замовлення', total: 'Разом', none: 'Замовлень ще немає',
+    waiting: 'Офіціанта повідомлено', billWait: 'Рахунок запрошено', coming: 'Офіціант іде до вас', cancel: 'Скасувати', cancelCall: 'Скасувати виклик', view: 'Переглянути замовлення', total: 'Разом', none: 'Замовлень ще немає',
     sent: 'Замовлення надіслано', payHow: 'Як бажаєте сплатити?', cash: 'Готівка', card: 'Картка', payAsked: 'Запит на оплату: ', soldOut: 'немає', offline: 'Немає зв’язку, повторюю…',
     st: { held: 'чекає на офіціанта', new: 'отримано', prep: 'готується', ready: 'готово', served: 'подано', cancelled: 'скасовано' }, cancelOrder: 'Скасувати замовлення', slow: 'Зачекайте, будь ласка.' },
 };
@@ -93,10 +93,13 @@ function render() {
   if (c) {
     const cls = c.ackAt ? 'acked' : c.type;
     const txt = c.ackAt ? tr().coming : c.type === 'bill' ? tr().billWait : tr().waiting;
-    b.innerHTML = `<div class="banner ${cls}"><span>${esc(txt)}</span><span class="sp"></span><span class="t" id="wt">${dur((nowMs() - c.since) / 1000)}</span>${c.ackAt ? '' : `<button class="ghost" id="bCancel">${esc(tr().cancel)}</button>`}</div>`;
+    b.innerHTML = `<div class="banner ${cls}"><span>${esc(txt)}</span><span class="sp"></span><span class="t" id="wt">${dur((nowMs() - c.since) / 1000)}</span><button class="ghost" id="bCancel">${esc(tr().cancel)}</button></div>`;
     const cb = $('#bCancel'); if (cb) cb.onclick = async () => { await post('/api/guest/call', { type: 'cancel' }); poll(); };
   } else b.innerHTML = '';
-  $('#bCall').disabled = !!c && !c.ackAt; $('#bBill').disabled = !!c && c.type === 'bill' && !c.ackAt;
+  // While a request is open the main button becomes "Cancel call", so a mistaken tap is easy to undo.
+  const bc = $('#bCall'); bc.classList.toggle('bad', !c); bc.classList.toggle('ghost', !!c);
+  bc.firstElementChild.textContent = c ? tr().cancelCall : tr().call; bc.lastElementChild.textContent = c ? '' : tr().callSub;
+  $('#bBill').disabled = !!c && c.type === 'bill';
   drawMenu(); drawOrders(); drawCart();
 }
 function drawMenu() {
@@ -150,7 +153,7 @@ async function loadMenu() {
     menu = (await req('GET', '/api/menu')).json; cur = menu.currency; cat = cat || menu.categories[0].id; if (tv) render();
   } catch { /* retried by the poll below */ }
 }
-$('#bCall').onclick = async () => { const r = await post('/api/guest/call', { type: 'call' }); if (r.status === 429) toast(tr().slow); poll(); };
+$('#bCall').onclick = async () => { const r = await post('/api/guest/call', { type: tv && tv.call ? 'cancel' : 'call' }); if (r.status === 429) toast(tr().slow); poll(); };
 $('#bBill').onclick = async () => { const r = await post('/api/guest/call', { type: 'bill' }); if (r.status === 429) toast(tr().slow); poll(); };
 $('#cartBtn').onclick = () => {
   const { rows, sum } = cartInfo();

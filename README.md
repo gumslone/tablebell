@@ -55,12 +55,12 @@ The hub is the only part that must be reliable, and it is plain Node.js with **n
 
 ## Features
 
-* **Table button**: short press = call waiter, hold 1.5 s = bill please, hold 5 s = cancel an unanswered request. Debounced, rate limited.
+* **Table button**: short press = call waiter, hold 1.5 s = bill please, hold 5 s = cancel the open request (even after the waiter said "I'm coming"). Debounced, rate limited.
   LED feedback: solid on press, fast blink = call pending, double pulse = bill pending, solid = "waiter is coming", two blinks = hub unreachable. Optional buzzer.
 * **Waiter dashboard** (`/waiter`): table cards coloured by status (call, bill, waiter on the way, food ready, seated, free), running wait timers,
   one-tap "I'm coming" / "Done" / "Paid", "ready to serve" strip, per-table orders, waiters can add items themselves, flag a table manually,
   mark items sold out, see button signal strength, average response time and sales of the day. Optional sound alert.
-* **Guest page** (`/?t=7&k=…`, English/German/Ukrainian): call waiter, bill please, browse menu, order (with note), live order status
+* **Guest page** (`/?t=7&k=…`, English/German/Ukrainian): call waiter (the same button turns into "Cancel call"), bill please, browse menu, order (with note), live order status
   (received, being prepared, ready, served), running bill, choose cash/card (payment-request flag for the waiter). Guests can cancel an order or change item quantities (− / +, down to 0 removes the item) until the kitchen starts that item; waiters can adjust quantities at any stage.
 * **Kitchen and bar views** (`/kitchen`, `/bar`): tickets with timers (turn amber/red when late), tap an item to advance it new → cooking → ready; drinks and food are routed by station. A "Sold out…" button lets the kitchen or bar mark items unavailable on the spot (also in the dashboard's Menu tab); guests see them greyed out within seconds.
 * **Safeguards**: PIN for staff pages with login throttling, shared secret for nodes, per-table key for guests, server-side prices, rate limits.

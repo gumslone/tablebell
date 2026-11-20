@@ -111,6 +111,7 @@ function createHub(opts = {}) {
     if (!c) return;
     state.history.push({ t, type: c.type, since: c.since, ackAt: c.ackAt, end: clock(), reason });
     if (state.history.length > 500) state.history.splice(0, state.history.length - 500);
+    if (reason === 'cancel') T.payReq = null;
     T.call = null; save();
   }
 
@@ -192,8 +193,8 @@ function createHub(opts = {}) {
         if (!dup) {
           if (body.id !== undefined) { ids.push(body.id); if (ids.length > 64) ids.shift(); seenIds.set(tNum, ids); }
           if (body.ev === 'call' || body.ev === 'bill') raise(tNum, body.ev, 'node');
-          else if (body.ev === 'cancel' && T.call && !T.call.ackAt) endCall(tNum, 'cancel');
-          else if (body.ev !== 'cancel') return send(res, 400, { ok: 0, err: 'ev' });
+          else if (body.ev === 'cancel') { if (T.call) endCall(tNum, 'cancel'); }
+          else return send(res, 400, { ok: 0, err: 'ev' });
         }
         save();
         return send(res, 200, { ok: 1, dup: dup ? 1 : 0, st: nodeState(tNum) });
@@ -218,7 +219,7 @@ function createHub(opts = {}) {
       const T = state.tables[tNum];
       if (p === '/api/guest/call') {
         if (body.type === 'call' || body.type === 'bill') raise(tNum, body.type, 'guest');
-        else if (body.type === 'cancel' && T.call && !T.call.ackAt) endCall(tNum, 'cancel');
+        else if (body.type === 'cancel') { if (T.call) endCall(tNum, 'cancel'); }
         else return send(res, 400, { ok: 0, err: 'type' });
         return send(res, 200, { ok: 1, table: tableView(tNum, false) });
       }

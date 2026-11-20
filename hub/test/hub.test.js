@@ -141,3 +141,17 @@ test('quantity: guest until the kitchen starts, waiter at any stage, 0 removes t
   assert.equal((await s.call('GET', `/api/table?t=2&k=${k}`)).json.total, 21);
   assert.equal((await s.call('POST', '/api/staff/qty', { oid: o.id, idx: 0, qty: 1 })).status, 401);
 });
+
+test('a call or bill can be cancelled by guest or button, even after the waiter answered', async (t) => {
+  const s = await start(); t.after(s.close);
+  const k = s.hub.tableKey(1);
+  await s.call('POST', '/api/guest/call', { t: 1, k, type: 'call' });
+  await s.staff('/api/staff/ack', { t: 1 });
+  assert.equal((await s.call('POST', '/api/guest/call', { t: 1, k, type: 'cancel' })).status, 200);
+  assert.equal(s.hub.state().tables[1].call, null);
+  await s.call('POST', '/api/guest/pay', { t: 1, k, method: 'card' });
+  await s.staff('/api/staff/ack', { t: 1 });
+  assert.equal((await s.node('/api/node/event', { t: 1, ev: 'cancel', id: 9 })).json.st, 'idle');
+  assert.equal(s.hub.state().tables[1].payReq, null);
+  assert.equal(s.hub.state().history.at(-1).reason, 'cancel');
+});
