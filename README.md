@@ -1,14 +1,18 @@
 # Tablebell
 
+<table><tr><td valign="top">
+
 Offline table service for restaurants and cafés. Every table has a small ESP module with one button.
 Guests press it to call a waiter (short press) or ask for the bill (hold), and can also scan a QR code
 to see their bill and order food and drinks from their phone. Waiters get a live dashboard, the
 kitchen and the bar get their own ticket screens. **No internet is needed**: everything runs on the
 restaurant's own Wi-Fi.
 
-| Guest page | Waiter dashboard | Kitchen |
-|---|---|---|
-| ![guest](docs/screenshots/guest-call.png) | ![waiter](docs/screenshots/waiter.png) | ![kitchen](docs/screenshots/kitchen.png) |
+</td><td width="260" valign="top"><img src="docs/screenshots/guest-call.png" alt="Guest page on a phone" width="260"></td></tr></table>
+
+| Waiter dashboard | Kitchen |
+|---|---|
+| ![waiter](docs/screenshots/waiter.png) | ![kitchen](docs/screenshots/kitchen.png) |
 
 More: [ordering](docs/screenshots/guest-menu.png), [cart](docs/screenshots/guest-cart.png), [bill](docs/screenshots/guest-bill.png),
 [German UI](docs/screenshots/guest-de.png), [table detail](docs/screenshots/waiter-table.png), [bar view](docs/screenshots/bar.png).
