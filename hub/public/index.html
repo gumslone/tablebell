@@ -122,9 +122,10 @@ function drawCart() {
 }
 function drawOrders() {
   const os = tv.orders.filter((o) => o.items.some((i) => i.st !== 'cancelled'));
-  $('#orders').innerHTML = os.length ? os.map((o) => `<div style="margin-bottom:10px">${o.items.filter((i) => i.st !== 'cancelled').map((i) => `<div class="line"><span>${i.qty}× ${esc(i.name)}</span><span class="st-${i.st}">${esc(tr().st[i.st])}</span></div>`).join('')}
+  $('#orders').innerHTML = os.length ? os.map((o) => `<div style="margin-bottom:10px">${o.items.filter((i) => i.st !== 'cancelled').map((i) => `<div class="line"><span>${i.qty}× ${esc(i.name)}</span><span class="row"><span class="st-${i.st}">${esc(tr().st[i.st])}</span>${i.st === 'new' || i.st === 'held' ? `<span class="step"><button data-oq="${o.id}:${o.items.indexOf(i)}:${i.qty - 1}">−</button><button data-oq="${o.id}:${o.items.indexOf(i)}:${i.qty + 1}">+</button></span>` : ''}</span></div>`).join('')}
     ${o.items.every((i) => i.st === 'new' || i.st === 'held' || i.st === 'cancelled') ? `<button class="ghost" data-oc="${o.id}">${esc(tr().cancelOrder)}</button>` : ''}</div>`).join('') : esc(tr().none);
   $('#orders').querySelectorAll('[data-oc]').forEach((b) => { b.onclick = async () => { await post('/api/guest/order/cancel', { oid: Number(b.dataset.oc) }); poll(); }; });
+  $('#orders').querySelectorAll('[data-oq]').forEach((b) => { b.onclick = async () => { const [oid, idx, qty] = b.dataset.oq.split(':').map(Number); const r = await post('/api/guest/order/qty', { oid, idx, qty: Math.min(20, qty) }); if (!r.ok) toast(tr().slow); poll(); }; });
   const pay = tv.payReq ? `<div class="banner bill">${esc(tr().payAsked)}${esc(tr()[tv.payReq])}</div>` : '';
   $('#billBox').innerHTML = tv.lines.length ? tv.lines.map((l) => `<div class="line"><span>${l.qty}× ${esc(l.name)}</span><span>${money(l.qty * l.price, cur)}</span></div>`).join('') +
     `<div class="line" style="border-top:1px solid var(--line);font-weight:700;font-size:18px"><span>${esc(tr().total)}</span><span>${money(tv.total, cur)}</span></div>` + pay +

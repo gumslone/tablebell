@@ -233,6 +233,16 @@ function createHub(opts = {}) {
         o.items.forEach((i) => { i.st = 'cancelled'; }); save();
         return send(res, 200, { ok: 1, table: tableView(tNum, false) });
       }
+      if (p === '/api/guest/order/qty') { // change quantity until the kitchen has started the item
+        const o = openOrders(tNum).find((x) => x.id === Number(body.oid));
+        const it = o && o.items[Number(body.idx)];
+        const qty = Number(body.qty);
+        if (!it || !Number.isInteger(qty) || qty < 0 || qty > 20) return send(res, 400, { ok: 0, err: 'bad_qty' });
+        if (it.st !== 'held' && it.st !== 'new') return send(res, 409, { ok: 0, err: 'in_progress' });
+        if (qty === 0) it.st = 'cancelled'; else it.qty = qty;
+        save();
+        return send(res, 200, { ok: 1, table: tableView(tNum, false) });
+      }
       if (p === '/api/guest/pay') {
         if (!['cash', 'card', null].includes(body.method ?? null)) return send(res, 400, { ok: 0, err: 'method' });
         T.payReq = body.method ?? null;
@@ -291,6 +301,16 @@ function createHub(opts = {}) {
           const to = body.to || ITEM_NEXT[it.st];
           if (!['held', 'new', 'prep', 'ready', 'served', 'cancelled'].includes(to)) return send(res, 400, { ok: 0, err: 'status' });
           it.st = to; save();
+          break;
+        }
+        case '/api/staff/qty': { // waiter: change quantity of a live item at any stage (0 = remove)
+          const o = state.orders.find((x) => x.id === Number(body.oid));
+          const it = o && o.items[Number(body.idx)];
+          const qty = Number(body.qty);
+          if (!it || it.st === 'cancelled') return send(res, 404, { ok: 0 });
+          if (!Number.isInteger(qty) || qty < 0 || qty > 20) return send(res, 400, { ok: 0, err: 'bad_qty' });
+          if (qty === 0) it.st = 'cancelled'; else it.qty = qty;
+          save();
           break;
         }
         case '/api/staff/bump': { // set every live item of an order (optionally one station) to a status

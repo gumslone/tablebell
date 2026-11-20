@@ -79,7 +79,7 @@ function drawSheet(keep) {
   if (keep && adding) return; // don't redraw underneath an open add-item picker
   $('#sheet').classList.remove('hidden');
   const its = t.orders.map((o) => `<div class="mut" style="margin-top:8px;font-size:12px">Order #${o.id} · ${o.by}${o.note ? ' · “' + esc(o.note) + '”' : ''}${o.items.some((i) => i.st === 'held') ? ` <button data-conf="${o.id}" class="warn" style="min-height:30px">Confirm</button>` : ''}</div>` +
-    o.items.map((i, idx) => `<div class="it"><span class="sp">${i.qty}× ${esc(i.name)}</span><span class="st-${i.st}">${i.st}</span>${i.st === 'ready' ? `<button class="ok" data-o="${o.id}" data-i="${idx}">Served</button>` : ''}${i.st !== 'cancelled' && i.st !== 'served' && i.st !== 'ready' ? `<button class="ghost" data-o="${o.id}" data-i="${idx}" data-to="cancelled">✕</button>` : ''}</div>`).join('')).join('');
+    o.items.map((i, idx) => `<div class="it"><span class="sp">${i.qty}× ${esc(i.name)}</span><span class="st-${i.st}">${i.st}</span>${i.st !== 'cancelled' ? `<button class="ghost" data-q="${o.id}:${idx}:${i.qty - 1}">−</button><button class="ghost" data-q="${o.id}:${idx}:${i.qty + 1}">+</button>` : ''}${i.st === 'ready' ? `<button class="ok" data-o="${o.id}" data-i="${idx}">Served</button>` : ''}${i.st !== 'cancelled' && i.st !== 'served' && i.st !== 'ready' ? `<button class="ghost" data-o="${o.id}" data-i="${idx}" data-to="cancelled">✕</button>` : ''}</div>`).join('')).join('');
   $('#det').innerHTML = `<div class="row"><h2 class="sp">Table ${t.t}</h2><button class="ghost" id="xc">Close</button></div>
     <div class="mut" style="font-size:13px">${t.node ? (t.node.online ? `Button online · ${t.node.rssi} dBm · ${t.node.vcc.toFixed ? t.node.vcc.toFixed(2) : t.node.vcc} V` : 'Button offline') : 'No button node seen yet'} · guest link key <code>${esc(t.key)}</code></div>
     ${its || '<p class="mut">No orders.</p>'}
@@ -90,6 +90,7 @@ function drawSheet(keep) {
   $('#pd').onclick = async () => { await act('paid', t.t); open = null; $('#sheet').classList.add('hidden'); };
   $('#ad').onclick = () => addPicker(t);
   $('#det').querySelectorAll('[data-conf]').forEach((b) => { b.onclick = async () => { const r = await Staff.post('/api/staff/confirm', { oid: Number(b.dataset.conf) }); if (r.ok) { S = r.json.state; draw(); } }; });
+  $('#det').querySelectorAll('[data-q]').forEach((b) => { b.onclick = async () => { const [oid, idx, qty] = b.dataset.q.split(':').map(Number); const r = await Staff.post('/api/staff/qty', { oid, idx, qty: Math.min(20, qty) }); if (r.ok) { S = r.json.state; draw(); } }; });
   $('#det').querySelectorAll('[data-o]').forEach((b) => { b.onclick = async () => { const r = await Staff.post('/api/staff/item', { oid: Number(b.dataset.o), idx: Number(b.dataset.i), to: b.dataset.to }); if (r.ok) { S = r.json.state; draw(); } }; });
 }
 function addPicker(t) {

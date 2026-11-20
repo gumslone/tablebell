@@ -125,3 +125,19 @@ test('node offline detection and captive-portal redirect', async (t) => {
   assert.equal(r.statusCode, 302); assert.equal(r.headers.location, 'http://192.168.50.1');
   r.resume();
 });
+
+test('quantity: guest until the kitchen starts, waiter at any stage, 0 removes the item', async (t) => {
+  const s = await start(); t.after(s.close);
+  const k = s.hub.tableKey(2);
+  const o = (await s.call('POST', '/api/guest/order', { t: 2, k, items: [{ id: 'm1', qty: 1 }, { id: 'b2', qty: 1 }] })).json;
+  assert.equal((await s.call('POST', '/api/guest/order/qty', { t: 2, k, oid: o.id, idx: 0, qty: 3 })).status, 200);
+  assert.equal((await s.call('GET', `/api/table?t=2&k=${k}`)).json.total, 3 * 10.5 + 3);
+  assert.equal((await s.call('POST', '/api/guest/order/qty', { t: 2, k, oid: o.id, idx: 0, qty: 99 })).status, 400);
+  assert.equal((await s.call('POST', '/api/guest/order/qty', { t: 3, k: s.hub.tableKey(3), oid: o.id, idx: 0, qty: 1 })).status, 400); // another table's order
+  await s.staff('/api/staff/item', { oid: o.id, idx: 0 });              // kitchen starts item 0
+  assert.equal((await s.call('POST', '/api/guest/order/qty', { t: 2, k, oid: o.id, idx: 0, qty: 1 })).status, 409);
+  assert.equal((await s.call('POST', '/api/guest/order/qty', { t: 2, k, oid: o.id, idx: 1, qty: 0 })).status, 200); // drink still new: remove
+  assert.equal((await s.staff('/api/staff/qty', { oid: o.id, idx: 0, qty: 2 })).status, 200);   // waiter can still adjust
+  assert.equal((await s.call('GET', `/api/table?t=2&k=${k}`)).json.total, 21);
+  assert.equal((await s.call('POST', '/api/staff/qty', { oid: o.id, idx: 0, qty: 1 })).status, 401);
+});
