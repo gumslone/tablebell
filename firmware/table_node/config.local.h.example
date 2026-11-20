@@ -1,0 +1,6 @@
+// Copy to config.local.h and edit. config.local.h is git-ignored.
+#define TABLE_ID 7
+#define WIFI_SSID "MyRestaurantWiFi"
+#define WIFI_PASS "a-long-random-password"
+#define HUB_HOST "192.168.50.1"
+#define NODE_KEY "same-as-hub-config-json"

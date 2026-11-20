@@ -1,0 +1,18 @@
+# sudo cp deploy/tablebell.service /etc/systemd/system/ && sudo systemctl enable --now tablebell
+# Adjust User and the paths. Port 80 works without root through the capability below.
+[Unit]
+Description=Tablebell hub
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=pi
+WorkingDirectory=/home/pi/tablebell
+ExecStart=/usr/bin/node hub/server.js
+Restart=always
+RestartSec=2
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Table service</title>
+<link rel="stylesheet" href="common.css">
+<style>
+body{padding-bottom:90px}
+.wrap{max-width:560px;margin:0 auto;padding:0 14px}
+.hero{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0}
+.hero button{min-height:84px;font-size:18px;font-weight:700;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
+.hero small{font-weight:400;opacity:.85;font-size:13px}
+.banner{border-radius:14px;padding:12px 14px;margin:10px 0;display:flex;align-items:center;gap:10px}
+.banner.call{background:#4a1d20;border:1px solid var(--call)}.banner.bill{background:#47340f;border:1px solid var(--bill)}.banner.acked{background:#2c2552;border:1px solid var(--ack)}
+.banner .t{font-variant-numeric:tabular-nums;font-weight:700}
+.tabs{display:flex;gap:6px;overflow-x:auto;padding:4px 0 10px;position:sticky;top:50px;background:var(--bg);z-index:4}
+.tabs button{white-space:nowrap;padding:8px 14px;min-height:38px;border-radius:99px}.tabs .on{background:var(--acc);color:#04111f;font-weight:700}
+.item{display:flex;gap:10px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}
+.item .n{font-weight:600}.item .p{font-variant-numeric:tabular-nums}
+.step{display:flex;align-items:center;gap:6px}.step button{width:40px;min-height:40px;padding:0;border-radius:50%;font-size:20px}.step b{min-width:22px;text-align:center}
+.cart{position:fixed;left:0;right:0;bottom:0;padding:10px 14px calc(10px + env(safe-area-inset-bottom));background:linear-gradient(transparent,var(--bg) 30%)}
+.cart button{width:min(560px,100%);display:block;margin:0 auto;min-height:52px;font-size:17px}
+h2{font-size:17px;margin:22px 0 6px}
+.line{display:flex;justify-content:space-between;padding:6px 0}
+.sold{opacity:.4}
+.lang{background:transparent;border:1px solid var(--line);padding:4px 8px;min-height:30px;font-size:13px;border-radius:8px}.lang.on{background:var(--card2)}
+</style></head>
+<body>
+<div class="top"><h1 id="rest">…</h1><span class="sp"></span><span id="langs"></span><span class="pill" id="tbl"></span></div>
+<div class="wrap">
+  <div id="err" class="banner call hidden"></div>
+  <div id="main" class="hidden">
+    <div id="banner"></div>
+    <div class="hero">
+      <button class="bad" id="bCall"><span data-i="call">Call waiter</span><small data-i="callSub">for any question</small></button>
+      <button class="warn" id="bBill"><span data-i="bill">Bill, please</span><small data-i="billSub">we are ready to pay</small></button>
+    </div>
+    <h2 data-i="menu">Menu</h2>
+    <div class="tabs" id="tabs"></div>
+    <div id="items"></div>
+    <h2 data-i="yours">Your orders</h2>
+    <div id="orders" class="mut">—</div>
+    <h2 data-i="yourBill">Your bill</h2>
+    <div id="billBox"></div>
+  </div>
+</div>
+<div class="cart hidden" id="cartBar"><button class="pri" id="cartBtn"></button></div>
+<div class="sheet hidden" id="cartSheet"><div>
+  <h2 style="margin-top:0" data-i="cartTitle">Your order</h2>
+  <div id="cartLines"></div>
+  <textarea id="note" rows="2" maxlength="140" data-ph="notePh" placeholder="Note for the kitchen (allergies, …)"></textarea>
+  <div class="row" style="margin-top:12px"><button class="ghost" id="cartClose" data-i="back">Back</button><span class="sp"></span><button class="pri" id="cartSend" data-i="send">Send order</button></div>
+</div></div>
+<script src="common.js"></script>
+<script>
+const L = {
+  en: { call: 'Call waiter', callSub: 'for any question', bill: 'Bill, please', billSub: 'we are ready to pay', menu: 'Menu', yours: 'Your orders', yourBill: 'Your bill',
+    cartTitle: 'Your order', notePh: 'Note for the kitchen (allergies, …)', back: 'Back', send: 'Send order', table: 'Table', scan: 'Please scan the QR code on your table.',
+    waiting: 'Waiter has been notified', billWait: 'Bill requested', coming: 'A waiter is on the way', cancel: 'Cancel', view: 'View order', total: 'Total', none: 'No orders yet',
+    sent: 'Order sent', payHow: 'How would you like to pay?', cash: 'Cash', card: 'Card', payAsked: 'Payment requested: ', soldOut: 'sold out', offline: 'Connection lost, retrying…',
+    st: { held: 'waiting for waiter', new: 'received', prep: 'being prepared', ready: 'ready', served: 'served', cancelled: 'cancelled' }, cancelOrder: 'Cancel order', slow: 'Please wait a moment.' },
+  de: { call: 'Kellner rufen', callSub: 'bei jeder Frage', bill: 'Zahlen, bitte', billSub: 'wir möchten zahlen', menu: 'Speisekarte', yours: 'Ihre Bestellungen', yourBill: 'Ihre Rechnung',
+    cartTitle: 'Ihre Bestellung', notePh: 'Hinweis für die Küche (Allergien, …)', back: 'Zurück', send: 'Bestellung senden', table: 'Tisch', scan: 'Bitte scannen Sie den QR-Code an Ihrem Tisch.',
+    waiting: 'Kellner wurde gerufen', billWait: 'Rechnung angefordert', coming: 'Ein Kellner ist unterwegs', cancel: 'Abbrechen', view: 'Bestellung ansehen', total: 'Summe', none: 'Noch keine Bestellungen',
+    sent: 'Bestellung gesendet', payHow: 'Wie möchten Sie zahlen?', cash: 'Bar', card: 'Karte', payAsked: 'Zahlung angefragt: ', soldOut: 'ausverkauft', offline: 'Verbindung verloren, neuer Versuch…',
+    st: { held: 'wartet auf Kellner', new: 'erhalten', prep: 'in Zubereitung', ready: 'fertig', served: 'serviert', cancelled: 'storniert' }, cancelOrder: 'Bestellung stornieren', slow: 'Bitte einen Moment warten.' },
+  uk: { call: 'Покликати офіціанта', callSub: 'з будь-яким питанням', bill: 'Рахунок, будь ласка', billSub: 'ми готові сплатити', menu: 'Меню', yours: 'Ваші замовлення', yourBill: 'Ваш рахунок',
+    cartTitle: 'Ваше замовлення', notePh: 'Примітка для кухні (алергії, …)', back: 'Назад', send: 'Надіслати замовлення', table: 'Столик', scan: 'Скануйте QR-код на вашому столику.',
+    waiting: 'Офіціанта повідомлено', billWait: 'Рахунок запрошено', coming: 'Офіціант іде до вас', cancel: 'Скасувати', view: 'Переглянути замовлення', total: 'Разом', none: 'Замовлень ще немає',
+    sent: 'Замовлення надіслано', payHow: 'Як бажаєте сплатити?', cash: 'Готівка', card: 'Картка', payAsked: 'Запит на оплату: ', soldOut: 'немає', offline: 'Немає зв’язку, повторюю…',
+    st: { held: 'чекає на офіціанта', new: 'отримано', prep: 'готується', ready: 'готово', served: 'подано', cancelled: 'скасовано' }, cancelOrder: 'Скасувати замовлення', slow: 'Зачекайте, будь ласка.' },
+};
+const q = new URLSearchParams(location.search);
+const T = Number(q.get('t')), K = q.get('k') || '';
+let lang = (() => { try { return localStorage.getItem('lang'); } catch { return null; } })() || (navigator.language || 'en').slice(0, 2);
+if (!L[lang]) lang = 'en';
+let tv = null, menu = null, cat = null, cart = {}, cur = '€';
+const tr = () => L[lang];
+
+function applyLang() {
+  document.documentElement.lang = lang;
+  document.querySelectorAll('[data-i]').forEach((e) => { e.textContent = tr()[e.dataset.i]; });
+  document.querySelectorAll('[data-ph]').forEach((e) => { e.placeholder = tr()[e.dataset.ph]; });
+  $('#langs').innerHTML = Object.keys(L).map((l) => `<button class="lang ${l === lang ? 'on' : ''}" data-l="${l}">${l.toUpperCase()}</button>`).join(' ');
+  $('#langs').querySelectorAll('button').forEach((b) => { b.onclick = () => { lang = b.dataset.l; try { localStorage.setItem('lang', lang); } catch { /* ignore */ } applyLang(); render(); }; });
+  $('#tbl').textContent = T ? `${tr().table} ${T}` : '';
+}
+const qs = () => `t=${T}&k=${encodeURIComponent(K)}`;
+const post = (p, b) => req('POST', p, { t: T, k: K, ...b });
+
+function render() {
+  if (!tv) return;
+  const b = $('#banner'), c = tv.call;
+  if (c) {
+    const cls = c.ackAt ? 'acked' : c.type;
+    const txt = c.ackAt ? tr().coming : c.type === 'bill' ? tr().billWait : tr().waiting;
+    b.innerHTML = `<div class="banner ${cls}"><span>${esc(txt)}</span><span class="sp"></span><span class="t" id="wt">${dur((nowMs() - c.since) / 1000)}</span>${c.ackAt ? '' : `<button class="ghost" id="bCancel">${esc(tr().cancel)}</button>`}</div>`;
+    const cb = $('#bCancel'); if (cb) cb.onclick = async () => { await post('/api/guest/call', { type: 'cancel' }); poll(); };
+  } else b.innerHTML = '';
+  $('#bCall').disabled = !!c && !c.ackAt; $('#bBill').disabled = !!c && c.type === 'bill' && !c.ackAt;
+  drawMenu(); drawOrders(); drawCart();
+}
+function drawMenu() {
+  if (!menu) return;
+  $('#tabs').innerHTML = menu.categories.map((c) => `<button data-c="${c.id}" class="${c.id === cat ? 'on' : ''}">${esc(c.name)}</button>`).join('');
+  $('#tabs').querySelectorAll('button').forEach((b) => { b.onclick = () => { cat = b.dataset.c; drawMenu(); }; });
+  $('#items').innerHTML = menu.items.filter((i) => i.cat === cat).map((i) => `
+    <div class="item ${i.avail ? '' : 'sold'}"><div class="sp"><div class="n">${esc(i.name)}</div><div class="mut">${esc(i.desc || '')}</div></div>
+    <div class="p">${money(i.price, cur)}</div>
+    ${i.avail ? `<div class="step"><button data-m="${i.id}">−</button><b>${cart[i.id] || 0}</b><button data-p="${i.id}">+</button></div>` : `<span class="pill">${esc(tr().soldOut)}</span>`}</div>`).join('');
+  $('#items').querySelectorAll('[data-p]').forEach((b) => { b.onclick = () => { cart[b.dataset.p] = Math.min(20, (cart[b.dataset.p] || 0) + 1); drawMenu(); drawCart(); }; });
+  $('#items').querySelectorAll('[data-m]').forEach((b) => { b.onclick = () => { const n = (cart[b.dataset.m] || 0) - 1; if (n > 0) cart[b.dataset.m] = n; else delete cart[b.dataset.m]; drawMenu(); drawCart(); }; });
+}
+function cartInfo() {
+  const rows = Object.entries(cart).map(([id, qty]) => ({ i: menu.items.find((x) => x.id === id), qty })).filter((r) => r.i);
+  return { rows, n: rows.reduce((s, r) => s + r.qty, 0), sum: rows.reduce((s, r) => s + r.qty * r.i.price, 0) };
+}
+function drawCart() {
+  if (!menu) return;
+  const { n, sum } = cartInfo();
+  $('#cartBar').classList.toggle('hidden', !n);
+  $('#cartBtn').textContent = `${tr().view} · ${n} · ${money(sum, cur)}`;
+}
+function drawOrders() {
+  const os = tv.orders.filter((o) => o.items.some((i) => i.st !== 'cancelled'));
+  $('#orders').innerHTML = os.length ? os.map((o) => `<div style="margin-bottom:10px">${o.items.filter((i) => i.st !== 'cancelled').map((i) => `<div class="line"><span>${i.qty}× ${esc(i.name)}</span><span class="st-${i.st}">${esc(tr().st[i.st])}</span></div>`).join('')}
+    ${o.items.every((i) => i.st === 'new' || i.st === 'held' || i.st === 'cancelled') ? `<button class="ghost" data-oc="${o.id}">${esc(tr().cancelOrder)}</button>` : ''}</div>`).join('') : esc(tr().none);
+  $('#orders').querySelectorAll('[data-oc]').forEach((b) => { b.onclick = async () => { await post('/api/guest/order/cancel', { oid: Number(b.dataset.oc) }); poll(); }; });
+  const pay = tv.payReq ? `<div class="banner bill">${esc(tr().payAsked)}${esc(tr()[tv.payReq])}</div>` : '';
+  $('#billBox').innerHTML = tv.lines.length ? tv.lines.map((l) => `<div class="line"><span>${l.qty}× ${esc(l.name)}</span><span>${money(l.qty * l.price, cur)}</span></div>`).join('') +
+    `<div class="line" style="border-top:1px solid var(--line);font-weight:700;font-size:18px"><span>${esc(tr().total)}</span><span>${money(tv.total, cur)}</span></div>` + pay +
+    `<p class="mut">${esc(tr().payHow)}</p><div class="row"><button class="${tv.payReq === 'cash' ? 'pri' : ''}" id="pCash">${esc(tr().cash)}</button><button class="${tv.payReq === 'card' ? 'pri' : ''}" id="pCard">${esc(tr().card)}</button></div>` : '<span class="mut">—</span>';
+  const pc = $('#pCash'), pd = $('#pCard');
+  if (pc) { pc.onclick = () => pay_('cash'); pd.onclick = () => pay_('card'); }
+}
+async function pay_(method) { await post('/api/guest/pay', { method }); poll(); }
+
+let failed = 0;
+async function poll() {
+  try {
+    const r = await req('GET', `/api/table?${qs()}`);
+    if (r.status === 403) { $('#err').textContent = tr().scan; $('#err').classList.remove('hidden'); $('#main').classList.add('hidden'); return; }
+    tv = r.json; syncClock(tv.now); cur = tv.currency; failed = 0;
+    $('#err').classList.add('hidden'); $('#main').classList.remove('hidden'); $('#rest').textContent = tv.restaurant;
+    render();
+  } catch { if (++failed > 2) { $('#err').textContent = tr().offline; $('#err').classList.remove('hidden'); } }
+}
+async function loadMenu() {
+  try {
+    menu = (await req('GET', '/api/menu')).json; cur = menu.currency; cat = cat || menu.categories[0].id; if (tv) render();
+  } catch { /* retried by the poll below */ }
+}
+$('#bCall').onclick = async () => { const r = await post('/api/guest/call', { type: 'call' }); if (r.status === 429) toast(tr().slow); poll(); };
+$('#bBill').onclick = async () => { const r = await post('/api/guest/call', { type: 'bill' }); if (r.status === 429) toast(tr().slow); poll(); };
+$('#cartBtn').onclick = () => {
+  const { rows, sum } = cartInfo();
+  $('#cartLines').innerHTML = rows.map((r) => `<div class="line"><span>${r.qty}× ${esc(r.i.name)}</span><span>${money(r.qty * r.i.price, cur)}</span></div>`).join('') + `<div class="line" style="font-weight:700"><span>${esc(tr().total)}</span><span>${money(sum, cur)}</span></div>`;
+  $('#cartSheet').classList.remove('hidden');
+};
+$('#cartClose').onclick = () => $('#cartSheet').classList.add('hidden');
+$('#cartSend').onclick = async () => {
+  const items = Object.entries(cart).map(([id, qty]) => ({ id, qty }));
+  const r = await post('/api/guest/order', { items, note: $('#note').value });
+  if (r.ok) { cart = {}; $('#note').value = ''; $('#cartSheet').classList.add('hidden'); toast(tr().sent); poll(); loadMenu(); }
+  else { toast(r.status === 409 ? tr().soldOut : tr().slow); loadMenu(); }
+};
+applyLang();
+if (!T) { $('#err').textContent = tr().scan; $('#err').classList.remove('hidden'); }
+else { loadMenu(); poll(); setInterval(poll, 3000); setInterval(loadMenu, 20000); setInterval(() => { const c = tv && tv.call; if (c && $('#wt')) $('#wt').textContent = dur((nowMs() - c.since) / 1000); }, 1000); }
+</script></body></html>

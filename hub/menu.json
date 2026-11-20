@@ -1,0 +1,24 @@
+{
+  "categories": [
+    { "id": "starters", "name": "Starters" },
+    { "id": "mains", "name": "Mains" },
+    { "id": "desserts", "name": "Desserts" },
+    { "id": "drinks", "name": "Drinks" }
+  ],
+  "items": [
+    { "id": "s1", "cat": "starters", "name": "Tomato soup", "desc": "Basil, cream", "price": 5.5, "station": "kitchen" },
+    { "id": "s2", "cat": "starters", "name": "Bruschetta", "desc": "Tomato, garlic, olive oil", "price": 6.0, "station": "kitchen" },
+    { "id": "s3", "cat": "starters", "name": "Garden salad", "desc": "Seasonal greens", "price": 6.5, "station": "kitchen" },
+    { "id": "m1", "cat": "mains", "name": "Margherita pizza", "desc": "Mozzarella, tomato, basil", "price": 10.5, "station": "kitchen" },
+    { "id": "m2", "cat": "mains", "name": "Beef burger", "desc": "Fries, house sauce", "price": 13.5, "station": "kitchen" },
+    { "id": "m3", "cat": "mains", "name": "Pasta carbonara", "desc": "Guanciale, egg, pecorino", "price": 12.0, "station": "kitchen" },
+    { "id": "m4", "cat": "mains", "name": "Grilled salmon", "desc": "Lemon butter, vegetables", "price": 17.5, "station": "kitchen" },
+    { "id": "d1", "cat": "desserts", "name": "Tiramisu", "price": 6.0, "station": "kitchen" },
+    { "id": "d2", "cat": "desserts", "name": "Ice cream (3 scoops)", "price": 5.0, "station": "kitchen" },
+    { "id": "b1", "cat": "drinks", "name": "Water 0.5 l", "price": 2.5, "station": "bar" },
+    { "id": "b2", "cat": "drinks", "name": "Cola 0.33 l", "price": 3.0, "station": "bar" },
+    { "id": "b3", "cat": "drinks", "name": "Local lager 0.5 l", "price": 4.5, "station": "bar" },
+    { "id": "b4", "cat": "drinks", "name": "House red 0.2 l", "price": 5.0, "station": "bar" },
+    { "id": "b5", "cat": "drinks", "name": "Espresso", "price": 2.5, "station": "bar" }
+  ]
+}

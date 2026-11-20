@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kitchen / bar</title>
+<link rel="stylesheet" href="common.css">
+<style>
+.board{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;padding:12px;align-items:start}
+.tk{background:var(--card);border-radius:14px;border-top:6px solid var(--acc);overflow:hidden}
+.tk.late{border-color:var(--call)}.tk.mid{border-color:var(--bill)}.tk.done{border-color:var(--ready);opacity:.8}
+.tk header{display:flex;align-items:baseline;gap:8px;padding:10px 12px}.tk header b{font-size:22px}.tk header .tm{font-variant-numeric:tabular-nums;font-weight:700}
+.tk .note{padding:0 12px 6px;color:var(--bill);font-size:14px}
+.ln{display:flex;gap:8px;align-items:center;padding:10px 12px;border-top:1px solid var(--line);width:100%;border-radius:0;text-align:left;min-height:52px;background:transparent}
+.ln .q{font-weight:800;font-size:20px;min-width:28px}.ln .sp{font-size:17px}
+.ln.prep{background:#17304a}.ln.ready{background:#10352f}
+.empty{padding:40px;text-align:center}
+.mode button{border-radius:10px}.mode .on{background:var(--acc);color:#04111f;font-weight:700}
+</style></head>
+<body>
+<div class="top"><h1 id="ttl">Kitchen</h1><div class="row mode" id="mode"><button data-s="kitchen">Kitchen</button><button data-s="bar">Bar</button><button data-s="all">All</button></div><span class="sp"></span><span class="mut" id="cnt"></span><button id="snd" class="ghost">🔇</button></div>
+<div class="board" id="board"></div>
+<script src="common.js"></script>
+<script>
+const q = new URLSearchParams(location.search);
+let station = q.get('station') || (location.pathname === '/bar' ? 'bar' : 'kitchen');
+let S = null, sound = false, knownIds = new Set();
+const NEXT = { new: 'prep', prep: 'ready', ready: 'served' };
+const NAME = { new: 'new', prep: 'cooking', ready: 'ready' };
+
+async function poll() {
+  let r; try { r = await Staff.get('/api/staff/state'); } catch { return; }
+  if (r.status === 401) { if (!$('.sheet #pin')) pinGate(poll); return; }
+  S = r.json; syncClock(S.now); draw();
+}
+function tickets() {
+  const out = [];
+  for (const t of S.tables) for (const o of t.orders) {
+    const items = o.items.map((i, idx) => ({ ...i, idx })).filter((i) => (station === 'all' || i.station === station) && ['new', 'prep', 'ready'].includes(i.st));
+    if (items.length) out.push({ t: t.t, o, items });
+  }
+  return out.sort((a, b) => a.o.at - b.o.at);
+}
+function draw() {
+  document.querySelectorAll('#mode button').forEach((b) => b.classList.toggle('on', b.dataset.s === station));
+  $('#ttl').textContent = S.restaurant;
+  const tk = tickets();
+  $('#cnt').textContent = tk.length + ' tickets';
+  const ids = new Set(tk.filter((x) => x.items.some((i) => i.st === 'new')).map((x) => x.o.id));
+  if (sound && [...ids].some((i) => !knownIds.has(i))) beep(2);
+  knownIds = ids;
+  $('#board').innerHTML = tk.length ? tk.map(({ t, o, items }) => {
+    const age = (nowMs() - o.at) / 1000;
+    const cls = items.every((i) => i.st === 'ready') ? 'done' : age > 900 ? 'late' : age > 480 ? 'mid' : '';
+    return `<div class="tk ${cls}"><header><b>Table ${t}</b><span class="mut">#${o.id}</span><span class="sp"></span><span class="tm" data-at="${o.at}">${dur(age)}</span></header>
+      ${o.note ? `<div class="note">“${esc(o.note)}”</div>` : ''}
+      ${items.map((i) => `<button class="ln ${i.st}" data-o="${o.id}" data-i="${i.idx}"><span class="q">${i.qty}×</span><span class="sp">${esc(i.name)}</span><span class="pill">${NAME[i.st]}</span></button>`).join('')}
+      <button class="ln ok" style="justify-content:center;font-weight:700" data-bump="${o.id}">All ready ✓</button></div>`;
+  }).join('') : '<div class="empty mut">No open tickets. 🎉</div>';
+  $('#board').querySelectorAll('[data-i]').forEach((b) => { b.onclick = async () => { const r = await Staff.post('/api/staff/item', { oid: Number(b.dataset.o), idx: Number(b.dataset.i) }); if (r.ok) { S = r.json.state; draw(); } }; });
+  $('#board').querySelectorAll('[data-bump]').forEach((b) => { b.onclick = async () => { const r = await Staff.post('/api/staff/bump', { oid: Number(b.dataset.bump), to: 'ready', station: station === 'all' ? undefined : station }); if (r.ok) { S = r.json.state; draw(); } }; });
+}
+document.querySelectorAll('#mode button').forEach((b) => { b.onclick = () => { station = b.dataset.s; if (S) draw(); }; });
+$('#snd').onclick = () => { sound = !sound; $('#snd').textContent = sound ? '🔔' : '🔇'; if (sound) beep(1); };
+poll(); setInterval(poll, 2000);
+setInterval(() => { document.querySelectorAll('[data-at]').forEach((e) => { e.textContent = dur((nowMs() - Number(e.dataset.at)) / 1000); }); }, 1000);
+</script></body></html>

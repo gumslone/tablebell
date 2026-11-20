@@ -1,0 +1,8 @@
+.pio/
+.vscode/
+node_modules/
+firmware/table_node/config.local.h
+hub/config.json
+hub/data/
+*.bin
+.DS_Store

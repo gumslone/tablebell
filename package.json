@@ -1,0 +1,15 @@
+{
+  "name": "tablebell",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Offline restaurant table service: call-waiter buttons, guest menu/bill, waiter dashboard, kitchen view",
+  "license": "MIT",
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "start": "node hub/server.js",
+    "demo": "node hub/server.js --demo --port 8080 --data /tmp/tablebell-demo",
+    "test": "node --test hub/test/hub.test.js",
+    "screenshots": "node tools/screenshots/shoot.js",
+    "sheet": "node tools/table-sheet/make_sheet.js"
+  }
+}

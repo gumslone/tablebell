@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  firmware:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        env: [esp01_1m, nodemcuv2, esp32dev, esp32c3]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: ~/.platformio
+          key: pio-${{ matrix.env }}-${{ hashFiles('platformio.ini') }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install platformio
+      - name: Build ${{ matrix.env }}
+        run: pio run -e ${{ matrix.env }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: table-node-${{ matrix.env }}
+          path: .pio/build/${{ matrix.env }}/firmware.bin
+          retention-days: 14
+
+  native-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Button gestures, retry queue, backoff
+        run: |
+          g++ -std=c++17 -O1 -Wall -Wextra -Wshadow -Werror -Ifirmware/table_node tests/native/test_button.cpp -o tc_test
+          ./tc_test
+
+  hub:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Hub API tests
+        run: node --test hub/test/hub.test.js
+      - name: Syntax-check the web UIs
+        run: |
+          for f in hub/public/*.html; do
+            python3 - "$f" <<'PY'
+          import re, sys
+          s = open(sys.argv[1]).read()
+          m = re.findall(r'<script>(.*?)</script>', s, re.S)
+          open('/tmp/ui_' + sys.argv[1].split('/')[-1] + '.js', 'w').write('\n'.join(m))
+          PY
+          done
+          for f in /tmp/ui_*.js hub/public/common.js; do node --check "$f"; done

@@ -1,0 +1,12 @@
+{
+  "restaurantName": "My Restaurant",
+  "port": 80,
+  "tables": 12,
+  "currency": "€",
+  "staffPin": "1234",
+  "nodeKey": "change-me-node-key",
+  "requireTableKey": true,
+  "confirmOrders": false,
+  "nodeOfflineSec": 45,
+  "portalUrl": "http://192.168.50.1"
+}

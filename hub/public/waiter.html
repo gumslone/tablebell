@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Waiter dashboard</title>
+<link rel="stylesheet" href="common.css">
+<style>
+.stats{display:flex;gap:14px;font-size:13px;color:var(--mut);flex-wrap:wrap}.stats b{color:var(--fg)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:10px;padding:12px}
+.card{border-radius:16px;padding:12px;background:var(--free);display:flex;flex-direction:column;gap:6px;min-height:126px;border:2px solid transparent;cursor:pointer;position:relative}
+.card.occupied{background:var(--occ)}.card.call{background:var(--call);animation:pulse 1.2s infinite}.card.bill{background:var(--bill);color:#241500;animation:pulse 1.2s infinite}
+.card.acked{background:var(--ack)}.card.ready{background:var(--ready)}.card.free{background:#1d2632;color:var(--mut)}
+@keyframes pulse{50%{box-shadow:0 0 0 6px #ffffff22}}
+.card .no{font-size:28px;font-weight:800;line-height:1}.card .what{font-weight:700}.card .tm{font-variant-numeric:tabular-nums;font-size:22px;font-weight:700}
+.card .sub{font-size:13px;opacity:.9}
+.card .off{position:absolute;right:10px;top:10px;font-size:11px;background:#000a;color:#fff;padding:1px 7px;border-radius:99px}
+.card .acts{display:flex;gap:6px;margin-top:auto}.card .acts button{flex:1;min-height:38px;padding:4px;background:#0006;color:inherit;font-weight:700}
+.tabs{display:flex;gap:6px;padding:8px 12px 0}.tabs button{border-radius:10px}.tabs .on{background:var(--acc);color:#04111f;font-weight:700}
+.ready{}
+.rl{margin:8px 12px 0;padding:10px 12px;background:#12332f;border:1px solid var(--ready);border-radius:12px;font-size:14px}
+.det h2{margin:0 0 4px}.det .it{display:flex;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line)}
+.det .it button{min-height:34px;padding:2px 10px;font-size:13px}
+.mi{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--line)}
+.leg{display:flex;gap:8px;flex-wrap:wrap;padding:8px 12px;font-size:12px;color:var(--mut)}.leg i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px}
+</style></head>
+<body>
+<div class="top"><h1 id="rest">Waiter</h1><div class="stats" id="stats"></div><span class="sp"></span><button id="snd" class="ghost">🔇 Sound off</button></div>
+<div class="tabs"><button class="on" id="tTables">Tables</button><button id="tMenu">Menu availability</button></div>
+<div id="vTables"><div id="readyBox"></div><div class="grid" id="grid"></div>
+<div class="leg"><span><i style="background:var(--call)"></i>call</span><span><i style="background:var(--bill)"></i>bill</span><span><i style="background:var(--ack)"></i>waiter on the way</span><span><i style="background:var(--ready)"></i>food ready</span><span><i style="background:var(--occ)"></i>seated</span><span><i style="background:#1d2632"></i>free</span></div></div>
+<div id="vMenu" class="hidden"></div>
+<div class="sheet hidden" id="sheet"><div class="det" id="det"></div></div>
+<script src="common.js"></script>
+<script>
+let S = null, sound = false, known = new Set(), open = null, adding = null;
+const LABEL = { call: 'CALL', bill: 'BILL', acked: 'ON THE WAY', ready: 'FOOD READY', occupied: 'SEATED', free: 'free' };
+
+async function poll() {
+  let r;
+  try { r = await Staff.get('/api/staff/state'); } catch { return; }
+  if (r.status === 401) { if (!$('.sheet #pin')) pinGate(poll); return; }
+  S = r.json; syncClock(S.now); $('#rest').textContent = S.restaurant; draw();
+  // Beep for every call that was not there before.
+  const cur = new Set(S.tables.filter((t) => t.call && !t.call.ackAt).map((t) => t.t + ':' + t.call.type + ':' + t.call.since));
+  if (sound && [...cur].some((k) => !known.has(k))) beep(3);
+  known = cur;
+}
+const tableAge = (t) => t.call ? (nowMs() - t.call.since) / 1000 : 0;
+function draw() {
+  const st = S.stats, calls = S.tables.filter((t) => t.call).length;
+  $('#stats').innerHTML = `<span>Open calls <b>${calls}</b></span><span>Avg response today <b>${st.avgResponseSec == null ? '–' : dur(st.avgResponseSec)}</b></span><span>Sales today <b>${money(st.salesToday, S.currency)}</b> (${st.tablesPaid} tables)</span>`;
+  const ready = S.tables.flatMap((t) => t.orders.flatMap((o) => o.items.filter((i) => i.st === 'ready').map((i) => ({ t: t.t, i }))));
+  $('#readyBox').innerHTML = ready.length ? `<div class="rl">🍽 Ready to serve: ${ready.map((r) => `<b>T${r.t}</b> ${r.i.qty}× ${esc(r.i.name)}`).join(' · ')}</div>` : '';
+  const prio = { call: 0, bill: 1, acked: 2, ready: 3, occupied: 4, free: 5 };
+  const tables = [...S.tables].sort((a, b) => prio[a.status] - prio[b.status] || (a.call ? a.call.since - b.call.since : a.t - b.t));
+  $('#grid').innerHTML = tables.map((t) => {
+    const c = t.call, open = t.orders.some((o) => o.items.some((i) => i.st === 'held'));
+    return `<div class="card ${t.status}" data-t="${t.t}">
+      ${t.node && !t.node.online ? '<span class="off">button offline</span>' : ''}
+      <div class="no">${t.t}</div><div class="what">${LABEL[t.status]}${t.payReq ? ' · ' + t.payReq : ''}</div>
+      ${c ? `<div class="tm" data-since="${c.since}">${dur(tableAge(t))}</div>` : ''}
+      <div class="sub">${t.total ? money(t.total, S.currency) : ''}${open ? ' · needs confirm' : ''}</div>
+      <div class="acts">${c && !c.ackAt ? `<button data-a="ack">I’m coming</button>` : ''}${c && c.ackAt ? `<button data-a="clear">Done</button>` : ''}${t.status === 'bill' || (c && c.type === 'bill' && c.ackAt) || t.payReq ? `<button data-a="paid">Paid</button>` : ''}</div></div>`;
+  }).join('');
+  $('#grid').querySelectorAll('.card').forEach((el) => {
+    el.onclick = (e) => {
+      const a = e.target.dataset.a, t = Number(el.dataset.t);
+      if (a) { e.stopPropagation(); act(a, t); } else { open = t; drawSheet(); }
+    };
+  });
+  if (open) drawSheet(true);
+  if (!$('#vMenu').classList.contains('hidden')) drawMenu();
+}
+async function act(a, t) {
+  if (a === 'paid' && !confirm(`Table ${t} paid? This closes the bill.`)) return;
+  const r = await Staff.post('/api/staff/' + a, { t }); if (r.ok) { S = r.json.state; draw(); }
+}
+function drawSheet(keep) {
+  const t = S.tables.find((x) => x.t === open); if (!t) return;
+  if (keep && adding) return; // don't redraw underneath an open add-item picker
+  $('#sheet').classList.remove('hidden');
+  const its = t.orders.map((o) => `<div class="mut" style="margin-top:8px;font-size:12px">Order #${o.id} · ${o.by}${o.note ? ' · “' + esc(o.note) + '”' : ''}${o.items.some((i) => i.st === 'held') ? ` <button data-conf="${o.id}" class="warn" style="min-height:30px">Confirm</button>` : ''}</div>` +
+    o.items.map((i, idx) => `<div class="it"><span class="sp">${i.qty}× ${esc(i.name)}</span><span class="st-${i.st}">${i.st}</span>${i.st === 'ready' ? `<button class="ok" data-o="${o.id}" data-i="${idx}">Served</button>` : ''}${i.st !== 'cancelled' && i.st !== 'served' && i.st !== 'ready' ? `<button class="ghost" data-o="${o.id}" data-i="${idx}" data-to="cancelled">✕</button>` : ''}</div>`).join('')).join('');
+  $('#det').innerHTML = `<div class="row"><h2 class="sp">Table ${t.t}</h2><button class="ghost" id="xc">Close</button></div>
+    <div class="mut" style="font-size:13px">${t.node ? (t.node.online ? `Button online · ${t.node.rssi} dBm · ${t.node.vcc.toFixed ? t.node.vcc.toFixed(2) : t.node.vcc} V` : 'Button offline') : 'No button node seen yet'} · guest link key <code>${esc(t.key)}</code></div>
+    ${its || '<p class="mut">No orders.</p>'}
+    <div class="line row" style="margin-top:10px;font-weight:700"><span class="sp">Total</span><span>${money(t.total, S.currency)}</span></div>
+    <div class="row" style="margin-top:12px;flex-wrap:wrap"><button class="pri" id="ad">+ Add items</button><button class="warn" id="fc">Flag: call</button><button class="warn" id="fb">Flag: bill</button><button class="ok" id="pd">Paid</button></div>`;
+  $('#xc').onclick = () => { open = null; adding = null; $('#sheet').classList.add('hidden'); };
+  $('#fc').onclick = () => act('call', t.t); $('#fb').onclick = async () => { const r = await Staff.post('/api/staff/call', { t: t.t, type: 'bill' }); if (r.ok) { S = r.json.state; draw(); } };
+  $('#pd').onclick = async () => { await act('paid', t.t); open = null; $('#sheet').classList.add('hidden'); };
+  $('#ad').onclick = () => addPicker(t);
+  $('#det').querySelectorAll('[data-conf]').forEach((b) => { b.onclick = async () => { const r = await Staff.post('/api/staff/confirm', { oid: Number(b.dataset.conf) }); if (r.ok) { S = r.json.state; draw(); } }; });
+  $('#det').querySelectorAll('[data-o]').forEach((b) => { b.onclick = async () => { const r = await Staff.post('/api/staff/item', { oid: Number(b.dataset.o), idx: Number(b.dataset.i), to: b.dataset.to }); if (r.ok) { S = r.json.state; draw(); } }; });
+}
+function addPicker(t) {
+  adding = {};
+  const render = () => {
+    $('#det').innerHTML = `<div class="row"><h2 class="sp">Add to table ${t.t}</h2><button class="ghost" id="ab">Back</button></div>` +
+      S.menu.filter((m) => m.avail).map((m) => `<div class="mi"><span class="sp">${esc(m.name)} <span class="mut">${money(m.price, S.currency)}</span></span><button data-m="${m.id}" class="ghost">−</button><b>${adding[m.id] || 0}</b><button data-p="${m.id}">+</button></div>`).join('') +
+      `<button class="pri" id="as" style="width:100%;margin-top:12px">Send to kitchen/bar</button>`;
+    $('#ab').onclick = () => { adding = null; drawSheet(); };
+    $('#det').querySelectorAll('[data-p]').forEach((b) => { b.onclick = () => { adding[b.dataset.p] = (adding[b.dataset.p] || 0) + 1; render(); }; });
+    $('#det').querySelectorAll('[data-m]').forEach((b) => { b.onclick = () => { if (adding[b.dataset.m] > 0) adding[b.dataset.m]--; render(); }; });
+    $('#as').onclick = async () => {
+      const items = Object.entries(adding).filter(([, q]) => q > 0).map(([id, qty]) => ({ id, qty }));
+      if (!items.length) return;
+      const r = await Staff.post('/api/staff/order', { t: t.t, items }); if (r.ok) { S = r.json.state; adding = null; draw(); drawSheet(); } else toast('Could not send');
+    };
+  };
+  render();
+}
+function drawMenu() {
+  $('#vMenu').innerHTML = S.menu.map((m) => `<div class="mi"><span class="sp">${esc(m.name)} <span class="mut">${esc(m.station)}</span></span><span class="pill" style="background:${m.avail ? 'var(--ok)' : 'var(--call)'};color:#fff">${m.avail ? 'available' : 'sold out'}</span><button data-id="${m.id}" data-av="${m.avail ? 0 : 1}">${m.avail ? 'Mark sold out' : 'Mark available'}</button></div>`).join('');
+  $('#vMenu').querySelectorAll('button').forEach((b) => { b.onclick = async () => { const r = await Staff.post('/api/staff/avail', { id: b.dataset.id, avail: b.dataset.av === '1' }); if (r.ok) { S = r.json.state; draw(); } }; });
+}
+$('#snd').onclick = () => { sound = !sound; $('#snd').textContent = sound ? '🔔 Sound on' : '🔇 Sound off'; if (sound) beep(1); };
+$('#tTables').onclick = () => { $('#vTables').classList.remove('hidden'); $('#vMenu').classList.add('hidden'); $('#tTables').classList.add('on'); $('#tMenu').classList.remove('on'); };
+$('#tMenu').onclick = () => { $('#vMenu').classList.remove('hidden'); $('#vTables').classList.add('hidden'); $('#tMenu').classList.add('on'); $('#tTables').classList.remove('on'); if (S) drawMenu(); };
+poll(); setInterval(poll, 1500);
+setInterval(() => { document.querySelectorAll('[data-since]').forEach((e) => { e.textContent = dur((nowMs() - Number(e.dataset.since)) / 1000); }); }, 1000);
+</script></body></html>
