@@ -58,7 +58,7 @@ The hub is the only part that must be reliable, and it is plain Node.js with **n
   mark items sold out, see button signal strength, average response time and sales of the day. Optional sound alert.
 * **Guest page** (`/?t=7&k=…`, English/German/Ukrainian): call waiter, bill please, browse menu, order (with note), live order status
   (received, being prepared, ready, served), running bill, choose cash/card (payment-request flag for the waiter). Guests can cancel an order until the kitchen starts it.
-* **Kitchen and bar views** (`/kitchen`, `/bar`): tickets with timers (turn amber/red when late), tap an item to advance it new → cooking → ready; drinks and food are routed by station.
+* **Kitchen and bar views** (`/kitchen`, `/bar`): tickets with timers (turn amber/red when late), tap an item to advance it new → cooking → ready; drinks and food are routed by station. A "Sold out…" button lets the kitchen or bar mark items unavailable on the spot (also in the dashboard's Menu tab); guests see them greyed out within seconds.
 * **Safeguards**: PIN for staff pages with login throttling, shared secret for nodes, per-table key for guests, server-side prices, rate limits.
   Optional `confirmOrders` makes every guest order wait for a waiter's confirmation (recommended if pranks are a concern).
 

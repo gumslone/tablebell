@@ -16,8 +16,9 @@
 .mode button{border-radius:10px}.mode .on{background:var(--acc);color:#04111f;font-weight:700}
 </style></head>
 <body>
-<div class="top"><h1 id="ttl">Kitchen</h1><div class="row mode" id="mode"><button data-s="kitchen">Kitchen</button><button data-s="bar">Bar</button><button data-s="all">All</button></div><span class="sp"></span><span class="mut" id="cnt"></span><button id="snd" class="ghost">🔇</button></div>
+<div class="top"><h1 id="ttl">Kitchen</h1><div class="row mode" id="mode"><button data-s="kitchen">Kitchen</button><button data-s="bar">Bar</button><button data-s="all">All</button></div><span class="sp"></span><span class="mut" id="cnt"></span><button id="so" class="ghost">Sold out…</button><button id="snd" class="ghost">🔇</button></div>
 <div class="board" id="board"></div>
+<div class="sheet hidden" id="soSheet"><div><div class="row"><h2 class="sp" style="margin:0">Sold out</h2><button class="ghost" id="soClose">Close</button></div><div id="soList"></div></div></div>
 <script src="common.js"></script>
 <script>
 const q = new URLSearchParams(location.search);
@@ -59,6 +60,13 @@ function draw() {
   $('#board').querySelectorAll('[data-bump]').forEach((b) => { b.onclick = async () => { const r = await Staff.post('/api/staff/bump', { oid: Number(b.dataset.bump), to: 'ready', station: station === 'all' ? undefined : station }); if (r.ok) { S = r.json.state; draw(); } }; });
 }
 document.querySelectorAll('#mode button').forEach((b) => { b.onclick = () => { station = b.dataset.s; if (S) draw(); }; });
+function drawSo() {
+  const items = S.menu.filter((m) => station === 'all' || m.station === station);
+  $('#soList').innerHTML = items.map((m) => `<div class="ln" style="display:flex"><span class="sp">${esc(m.name)}</span><button data-id="${m.id}" data-av="${m.avail ? 0 : 1}" class="${m.avail ? 'ghost' : 'bad'}">${m.avail ? 'Mark sold out' : 'SOLD OUT · tap to restore'}</button></div>`).join('');
+  $('#soList').querySelectorAll('button').forEach((b) => { b.onclick = async () => { const r = await Staff.post('/api/staff/avail', { id: b.dataset.id, avail: b.dataset.av === '1' }); if (r.ok) { S = r.json.state; drawSo(); } }; });
+}
+$('#so').onclick = () => { if (S) { drawSo(); $('#soSheet').classList.remove('hidden'); } };
+$('#soClose').onclick = () => $('#soSheet').classList.add('hidden');
 $('#snd').onclick = () => { sound = !sound; $('#snd').textContent = sound ? '🔔' : '🔇'; if (sound) beep(1); };
 poll(); setInterval(poll, 2000);
 setInterval(() => { document.querySelectorAll('[data-at]').forEach((e) => { e.textContent = dur((nowMs() - Number(e.dataset.at)) / 1000); }); }, 1000);
