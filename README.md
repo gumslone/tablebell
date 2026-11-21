@@ -116,18 +116,23 @@ Cut, laminate, stand on the table. Re-run it whenever you change the number of t
 
 ### 3. Flash the table nodes
 
-Install [PlatformIO](https://platformio.org/), then per node:
+Install [PlatformIO](https://platformio.org/), then once:
 
 ```bash
 cp firmware/table_node/config.local.h.example firmware/table_node/config.local.h
-# edit: TABLE_ID, WIFI_SSID, WIFI_PASS, HUB_HOST, NODE_KEY (same as hub/config.json)
-pio run -e esp01_1m -t upload        # or nodemcuv2, esp32dev, esp32c3
-pio device monitor                   # optional: serial log at 115200
+# edit: WIFI_SSID, WIFI_PASS, HUB_HOST, NODE_KEY (same as hub/config.json)
 ```
 
-No command line handy? [BugZapper](https://github.com/gumslone/bugzapper) is a small GUI/CLI flasher with a built-in serial monitor for ESP8266/ESP32: build with `pio run -e <env>`, then flash `.pio/build/<env>/firmware.bin` and watch the boot log in one window.
+and per node (the table number is passed on the command line, no file edits between nodes):
 
-Only `TABLE_ID` changes between nodes. Label each node with its number. ESP-01 flashing needs a USB-serial adapter with GPIO0 pulled to GND while powering up.
+```bash
+tools/flash.sh -t 7 -e esp01_1m -m      # build + flash as table 7, then open the serial monitor
+tools/flash.sh -t 8 -p /dev/cu.usbserial-110   # pick the port yourself
+tools/build.sh -e all -t 7              # only build: dist/tablebell-<env>-table7.bin for every board
+```
+
+Environments: `esp01_1m` (default), `nodemcuv2`, `esp32dev`, `esp32c3`. ESP-01 flashing needs a USB-serial adapter with GPIO0 pulled to GND while powering up.
+Label each node with its number.
 
 ### 4. Test
 

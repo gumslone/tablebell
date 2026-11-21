@@ -6,6 +6,10 @@
 #include "config.local.h"
 #endif
 
+#ifdef TABLE_ID_OVERRIDE           // set by tools/build.sh --table N, wins over config.local.h
+#undef TABLE_ID
+#define TABLE_ID TABLE_ID_OVERRIDE
+#endif
 #ifndef TABLE_ID
 #define TABLE_ID 1                 // the table number this button belongs to (1..N)
 #endif

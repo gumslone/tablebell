@@ -6,3 +6,4 @@ hub/config.json
 hub/data/
 *.bin
 .DS_Store
+dist/
