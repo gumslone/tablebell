@@ -75,6 +75,7 @@ let lang = (() => { try { return localStorage.getItem('lang'); } catch { return 
 if (!L[lang]) lang = 'en';
 let tv = null, menu = null, cat = null, cart = {}, cur = '€';
 const tr = () => L[lang];
+const nm = (i) => lineName(menu && menu.items, i.id, i.name, lang);
 
 function applyLang() {
   document.documentElement.lang = lang;
@@ -104,10 +105,10 @@ function render() {
 }
 function drawMenu() {
   if (!menu) return;
-  $('#tabs').innerHTML = menu.categories.map((c) => `<button data-c="${c.id}" class="${c.id === cat ? 'on' : ''}">${esc(c.name)}</button>`).join('');
+  $('#tabs').innerHTML = menu.categories.map((c) => `<button data-c="${c.id}" class="${c.id === cat ? 'on' : ''}">${esc(mCat(c, lang))}</button>`).join('');
   $('#tabs').querySelectorAll('button').forEach((b) => { b.onclick = () => { cat = b.dataset.c; drawMenu(); }; });
   $('#items').innerHTML = menu.items.filter((i) => i.cat === cat).map((i) => `
-    <div class="item ${i.avail ? '' : 'sold'}"><div class="sp"><div class="n">${esc(i.name)}</div><div class="mut">${esc(i.desc || '')}</div></div>
+    <div class="item ${i.avail ? '' : 'sold'}"><div class="sp"><div class="n">${esc(mItem(i, lang).name)}</div><div class="mut">${esc(mItem(i, lang).desc)}</div></div>
     <div class="p">${money(i.price, cur)}</div>
     ${i.avail ? `<div class="step"><button data-m="${i.id}">−</button><b>${cart[i.id] || 0}</b><button data-p="${i.id}">+</button></div>` : `<span class="pill">${esc(tr().soldOut)}</span>`}</div>`).join('');
   $('#items').querySelectorAll('[data-p]').forEach((b) => { b.onclick = () => { cart[b.dataset.p] = Math.min(20, (cart[b.dataset.p] || 0) + 1); drawMenu(); drawCart(); }; });
@@ -125,12 +126,12 @@ function drawCart() {
 }
 function drawOrders() {
   const os = tv.orders.filter((o) => o.items.some((i) => i.st !== 'cancelled'));
-  $('#orders').innerHTML = os.length ? os.map((o) => `<div style="margin-bottom:10px">${o.items.filter((i) => i.st !== 'cancelled').map((i) => `<div class="line"><span>${i.qty}× ${esc(i.name)}</span><span class="row"><span class="st-${i.st}">${esc(tr().st[i.st])}</span>${i.st === 'new' || i.st === 'held' ? `<span class="step"><button data-oq="${o.id}:${o.items.indexOf(i)}:${i.qty - 1}">−</button><button data-oq="${o.id}:${o.items.indexOf(i)}:${i.qty + 1}">+</button></span>` : ''}</span></div>`).join('')}
+  $('#orders').innerHTML = os.length ? os.map((o) => `<div style="margin-bottom:10px">${o.items.filter((i) => i.st !== 'cancelled').map((i) => `<div class="line"><span>${i.qty}× ${esc(nm(i))}</span><span class="row"><span class="st-${i.st}">${esc(tr().st[i.st])}</span>${i.st === 'new' || i.st === 'held' ? `<span class="step"><button data-oq="${o.id}:${o.items.indexOf(i)}:${i.qty - 1}">−</button><button data-oq="${o.id}:${o.items.indexOf(i)}:${i.qty + 1}">+</button></span>` : ''}</span></div>`).join('')}
     ${o.items.every((i) => i.st === 'new' || i.st === 'held' || i.st === 'cancelled') ? `<button class="ghost" data-oc="${o.id}">${esc(tr().cancelOrder)}</button>` : ''}</div>`).join('') : esc(tr().none);
   $('#orders').querySelectorAll('[data-oc]').forEach((b) => { b.onclick = async () => { await post('/api/guest/order/cancel', { oid: Number(b.dataset.oc) }); poll(); }; });
   $('#orders').querySelectorAll('[data-oq]').forEach((b) => { b.onclick = async () => { const [oid, idx, qty] = b.dataset.oq.split(':').map(Number); const r = await post('/api/guest/order/qty', { oid, idx, qty: Math.min(20, qty) }); if (!r.ok) toast(tr().slow); poll(); }; });
   const pay = tv.payReq ? `<div class="banner bill">${esc(tr().payAsked)}${esc(tr()[tv.payReq])}</div>` : '';
-  $('#billBox').innerHTML = tv.lines.length ? tv.lines.map((l) => `<div class="line"><span>${l.qty}× ${esc(l.name)}</span><span>${money(l.qty * l.price, cur)}</span></div>`).join('') +
+  $('#billBox').innerHTML = tv.lines.length ? tv.lines.map((l) => `<div class="line"><span>${l.qty}× ${esc(nm(l))}</span><span>${money(l.qty * l.price, cur)}</span></div>`).join('') +
     `<div class="line" style="border-top:1px solid var(--line);font-weight:700;font-size:18px"><span>${esc(tr().total)}</span><span>${money(tv.total, cur)}</span></div>` + pay +
     `<p class="mut">${esc(tr().payHow)}</p><div class="row"><button class="${tv.payReq === 'cash' ? 'pri' : ''}" id="pCash">${esc(tr().cash)}</button><button class="${tv.payReq === 'card' ? 'pri' : ''}" id="pCard">${esc(tr().card)}</button></div>` : '<span class="mut">—</span>';
   const pc = $('#pCash'), pd = $('#pCard');
@@ -157,7 +158,7 @@ $('#bCall').onclick = async () => { const r = await post('/api/guest/call', { ty
 $('#bBill').onclick = async () => { const r = await post('/api/guest/call', { type: 'bill' }); if (r.status === 429) toast(tr().slow); poll(); };
 $('#cartBtn').onclick = () => {
   const { rows, sum } = cartInfo();
-  $('#cartLines').innerHTML = rows.map((r) => `<div class="line"><span>${r.qty}× ${esc(r.i.name)}</span><span>${money(r.qty * r.i.price, cur)}</span></div>`).join('') + `<div class="line" style="font-weight:700"><span>${esc(tr().total)}</span><span>${money(sum, cur)}</span></div>`;
+  $('#cartLines').innerHTML = rows.map((r) => `<div class="line"><span>${r.qty}× ${esc(mItem(r.i, lang).name)}</span><span>${money(r.qty * r.i.price, cur)}</span></div>`).join('') + `<div class="line" style="font-weight:700"><span>${esc(tr().total)}</span><span>${money(sum, cur)}</span></div>`;
   $('#cartSheet').classList.remove('hidden');
 };
 $('#cartClose').onclick = () => $('#cartSheet').classList.add('hidden');

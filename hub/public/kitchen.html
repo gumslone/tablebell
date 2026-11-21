@@ -16,16 +16,17 @@
 .mode button{border-radius:10px}.mode .on{background:var(--acc);color:#04111f;font-weight:700}
 </style></head>
 <body>
-<div class="top"><h1 id="ttl">Kitchen</h1><div class="row mode" id="mode"><button data-s="kitchen">Kitchen</button><button data-s="bar">Bar</button><button data-s="all">All</button></div><span class="sp"></span><span class="mut" id="cnt"></span><button id="so" class="ghost">Sold out…</button><button id="snd" class="ghost">🔇</button></div>
+<div class="top"><h1 id="ttl">Kitchen</h1><div class="row mode" id="mode"><button data-s="kitchen"></button><button data-s="bar"></button><button data-s="all"></button></div><span class="sp"></span><span class="mut" id="cnt"></span><span id="langs"></span><button id="so" class="ghost"></button><button id="snd" class="ghost">🔇</button></div>
 <div class="board" id="board"></div>
-<div class="sheet hidden" id="soSheet"><div><div class="row"><h2 class="sp" style="margin:0">Sold out</h2><button class="ghost" id="soClose">Close</button></div><div id="soList"></div></div></div>
+<div class="sheet hidden" id="soSheet"><div><div class="row"><h2 class="sp" style="margin:0" id="soT"></h2><button class="ghost" id="soClose"></button></div><div id="soList"></div></div></div>
 <script src="common.js"></script>
 <script>
 const q = new URLSearchParams(location.search);
 let station = q.get('station') || (location.pathname === '/bar' ? 'bar' : 'kitchen');
 let lastSig = '', S = null, sound = false, knownIds = new Set();
 const NEXT = { new: 'prep', prep: 'ready', ready: 'served' };
-const NAME = { new: 'new', prep: 'cooking', ready: 'ready' };
+const NAME = (st) => tt('s_' + st);
+const nm = (i) => lineName(S.menu, i.id, i.name);
 
 async function poll() {
   let r; try { r = await Staff.get('/api/staff/state'); } catch { return; }
@@ -44,25 +45,30 @@ function draw() {
   document.querySelectorAll('#mode button').forEach((b) => b.classList.toggle('on', b.dataset.s === station));
   $('#ttl').textContent = S.restaurant;
   const tk = tickets();
-  $('#cnt').textContent = tk.length + ' tickets';
+  $('#cnt').textContent = tk.length + ' ' + tt('tickets');
   const ids = new Set(tk.filter((x) => x.items.some((i) => i.st === 'new')).map((x) => x.o.id));
   if (sound && [...ids].some((i) => !knownIds.has(i))) beep(2);
   knownIds = ids;
   $('#board').innerHTML = tk.length ? tk.map(({ t, o, items }) => {
     const age = (nowMs() - o.at) / 1000;
     const cls = items.every((i) => i.st === 'ready') ? 'done' : age > 900 ? 'late' : age > 480 ? 'mid' : '';
-    return `<div class="tk ${cls}"><header><b>Table ${t}</b><span class="mut">#${o.id}</span><span class="sp"></span><span class="tm" data-at="${o.at}">${dur(age)}</span></header>
+    return `<div class="tk ${cls}"><header><b>${esc(tt('table'))} ${t}</b><span class="mut">#${o.id}</span><span class="sp"></span><span class="tm" data-at="${o.at}">${dur(age)}</span></header>
       ${o.note ? `<div class="note">“${esc(o.note)}”</div>` : ''}
-      ${items.map((i) => `<button class="ln ${i.st}" data-o="${o.id}" data-i="${i.idx}"><span class="q">${i.qty}×</span><span class="sp">${esc(i.name)}</span><span class="pill">${NAME[i.st]}</span></button>`).join('')}
-      <button class="ln ok" style="justify-content:center;font-weight:700" data-bump="${o.id}">All ready ✓</button></div>`;
-  }).join('') : '<div class="empty mut">No open tickets. 🎉</div>';
+      ${items.map((i) => `<button class="ln ${i.st}" data-o="${o.id}" data-i="${i.idx}"><span class="q">${i.qty}×</span><span class="sp">${esc(nm(i))}</span><span class="pill">${esc(NAME(i.st))}</span></button>`).join('')}
+      <button class="ln ok" style="justify-content:center;font-weight:700" data-bump="${o.id}">${esc(tt('allReady'))}</button></div>`;
+  }).join('') : `<div class="empty mut">${esc(tt('noTickets'))}</div>`;
   $('#board').querySelectorAll('[data-i]').forEach((b) => { b.onclick = async () => { const r = await Staff.post('/api/staff/item', { oid: Number(b.dataset.o), idx: Number(b.dataset.i) }); if (r.ok) { S = r.json.state; draw(); } }; });
   $('#board').querySelectorAll('[data-bump]').forEach((b) => { b.onclick = async () => { const r = await Staff.post('/api/staff/bump', { oid: Number(b.dataset.bump), to: 'ready', station: station === 'all' ? undefined : station }); if (r.ok) { S = r.json.state; draw(); } }; });
 }
+function statics() {
+  document.querySelectorAll('#mode button').forEach((b) => { b.textContent = tt(b.dataset.s); });
+  $('#so').textContent = tt('soldOutBtn'); $('#soT').textContent = tt('soldOutBtn'); $('#soClose').textContent = tt('close');
+}
+statics(); langSwitch(() => { statics(); if (S) { draw(); if (!$('#soSheet').classList.contains('hidden')) drawSo(); } });
 document.querySelectorAll('#mode button').forEach((b) => { b.onclick = () => { station = b.dataset.s; if (S) draw(); }; });
 function drawSo() {
   const items = S.menu.filter((m) => station === 'all' || m.station === station);
-  $('#soList').innerHTML = items.map((m) => `<div class="ln" style="display:flex"><span class="sp">${esc(m.name)}</span><button data-id="${m.id}" data-av="${m.avail ? 0 : 1}" class="${m.avail ? 'ghost' : 'bad'}">${m.avail ? 'Mark sold out' : 'SOLD OUT · tap to restore'}</button></div>`).join('');
+  $('#soList').innerHTML = items.map((m) => `<div class="ln" style="display:flex"><span class="sp">${esc(mItem(m).name)}</span><button data-id="${m.id}" data-av="${m.avail ? 0 : 1}" class="${m.avail ? 'ghost' : 'bad'}">${esc(m.avail ? tt('markSold') : tt('restore'))}</button></div>`).join('');
   $('#soList').querySelectorAll('button').forEach((b) => { b.onclick = async () => { const r = await Staff.post('/api/staff/avail', { id: b.dataset.id, avail: b.dataset.av === '1' }); if (r.ok) { S = r.json.state; drawSo(); } }; });
 }
 $('#so').onclick = () => { if (S) { drawSo(); $('#soSheet').classList.remove('hidden'); } };

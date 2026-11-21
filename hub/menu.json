@@ -1,24 +1,269 @@
 {
-  "categories": [
-    { "id": "starters", "name": "Starters" },
-    { "id": "mains", "name": "Mains" },
-    { "id": "desserts", "name": "Desserts" },
-    { "id": "drinks", "name": "Drinks" }
-  ],
-  "items": [
-    { "id": "s1", "cat": "starters", "name": "Tomato soup", "desc": "Basil, cream", "price": 5.5, "station": "kitchen" },
-    { "id": "s2", "cat": "starters", "name": "Bruschetta", "desc": "Tomato, garlic, olive oil", "price": 6.0, "station": "kitchen" },
-    { "id": "s3", "cat": "starters", "name": "Garden salad", "desc": "Seasonal greens", "price": 6.5, "station": "kitchen" },
-    { "id": "m1", "cat": "mains", "name": "Margherita pizza", "desc": "Mozzarella, tomato, basil", "price": 10.5, "station": "kitchen" },
-    { "id": "m2", "cat": "mains", "name": "Beef burger", "desc": "Fries, house sauce", "price": 13.5, "station": "kitchen" },
-    { "id": "m3", "cat": "mains", "name": "Pasta carbonara", "desc": "Guanciale, egg, pecorino", "price": 12.0, "station": "kitchen" },
-    { "id": "m4", "cat": "mains", "name": "Grilled salmon", "desc": "Lemon butter, vegetables", "price": 17.5, "station": "kitchen" },
-    { "id": "d1", "cat": "desserts", "name": "Tiramisu", "price": 6.0, "station": "kitchen" },
-    { "id": "d2", "cat": "desserts", "name": "Ice cream (3 scoops)", "price": 5.0, "station": "kitchen" },
-    { "id": "b1", "cat": "drinks", "name": "Water 0.5 l", "price": 2.5, "station": "bar" },
-    { "id": "b2", "cat": "drinks", "name": "Cola 0.33 l", "price": 3.0, "station": "bar" },
-    { "id": "b3", "cat": "drinks", "name": "Local lager 0.5 l", "price": 4.5, "station": "bar" },
-    { "id": "b4", "cat": "drinks", "name": "House red 0.2 l", "price": 5.0, "station": "bar" },
-    { "id": "b5", "cat": "drinks", "name": "Espresso", "price": 2.5, "station": "bar" }
-  ]
+ "categories": [
+  {
+   "id": "starters",
+   "name": "Starters",
+   "i18n": {
+    "de": "Vorspeisen",
+    "uk": "Закуски"
+   }
+  },
+  {
+   "id": "mains",
+   "name": "Mains",
+   "i18n": {
+    "de": "Hauptgerichte",
+    "uk": "Основні страви"
+   }
+  },
+  {
+   "id": "desserts",
+   "name": "Desserts",
+   "i18n": {
+    "de": "Desserts",
+    "uk": "Десерти"
+   }
+  },
+  {
+   "id": "drinks",
+   "name": "Drinks",
+   "i18n": {
+    "de": "Getränke",
+    "uk": "Напої"
+   }
+  }
+ ],
+ "items": [
+  {
+   "id": "s1",
+   "cat": "starters",
+   "name": "Tomato soup",
+   "desc": "Basil, cream",
+   "price": 5.5,
+   "station": "kitchen",
+   "i18n": {
+    "de": {
+     "name": "Tomatensuppe",
+     "desc": "Basilikum, Sahne"
+    },
+    "uk": {
+     "name": "Томатний суп",
+     "desc": "Базилік, вершки"
+    }
+   }
+  },
+  {
+   "id": "s2",
+   "cat": "starters",
+   "name": "Bruschetta",
+   "desc": "Tomato, garlic, olive oil",
+   "price": 6.0,
+   "station": "kitchen",
+   "i18n": {
+    "de": {
+     "name": "Bruschetta",
+     "desc": "Tomate, Knoblauch, Olivenöl"
+    },
+    "uk": {
+     "name": "Брускета",
+     "desc": "Томати, часник, оливкова олія"
+    }
+   }
+  },
+  {
+   "id": "s3",
+   "cat": "starters",
+   "name": "Garden salad",
+   "desc": "Seasonal greens",
+   "price": 6.5,
+   "station": "kitchen",
+   "i18n": {
+    "de": {
+     "name": "Gartensalat",
+     "desc": "Saisonale Blattsalate"
+    },
+    "uk": {
+     "name": "Садовий салат",
+     "desc": "Сезонна зелень"
+    }
+   }
+  },
+  {
+   "id": "m1",
+   "cat": "mains",
+   "name": "Margherita pizza",
+   "desc": "Mozzarella, tomato, basil",
+   "price": 10.5,
+   "station": "kitchen",
+   "i18n": {
+    "de": {
+     "name": "Pizza Margherita",
+     "desc": "Mozzarella, Tomate, Basilikum"
+    },
+    "uk": {
+     "name": "Піца Маргарита",
+     "desc": "Моцарела, томати, базилік"
+    }
+   }
+  },
+  {
+   "id": "m2",
+   "cat": "mains",
+   "name": "Beef burger",
+   "desc": "Fries, house sauce",
+   "price": 13.5,
+   "station": "kitchen",
+   "i18n": {
+    "de": {
+     "name": "Rindfleisch-Burger",
+     "desc": "Pommes, Haussauce"
+    },
+    "uk": {
+     "name": "Бургер з яловичиною",
+     "desc": "Картопля фрі, фірмовий соус"
+    }
+   }
+  },
+  {
+   "id": "m3",
+   "cat": "mains",
+   "name": "Pasta carbonara",
+   "desc": "Guanciale, egg, pecorino",
+   "price": 12.0,
+   "station": "kitchen",
+   "i18n": {
+    "de": {
+     "name": "Spaghetti Carbonara",
+     "desc": "Guanciale, Ei, Pecorino"
+    },
+    "uk": {
+     "name": "Паста карбонара",
+     "desc": "Гуанчале, яйце, пекоріно"
+    }
+   }
+  },
+  {
+   "id": "m4",
+   "cat": "mains",
+   "name": "Grilled salmon",
+   "desc": "Lemon butter, vegetables",
+   "price": 17.5,
+   "station": "kitchen",
+   "i18n": {
+    "de": {
+     "name": "Gegrillter Lachs",
+     "desc": "Zitronenbutter, Gemüse"
+    },
+    "uk": {
+     "name": "Лосось на грилі",
+     "desc": "Лимонне масло, овочі"
+    }
+   }
+  },
+  {
+   "id": "d1",
+   "cat": "desserts",
+   "name": "Tiramisu",
+   "price": 6.0,
+   "station": "kitchen",
+   "i18n": {
+    "de": {
+     "name": "Tiramisu"
+    },
+    "uk": {
+     "name": "Тірамісу"
+    }
+   }
+  },
+  {
+   "id": "d2",
+   "cat": "desserts",
+   "name": "Ice cream (3 scoops)",
+   "price": 5.0,
+   "station": "kitchen",
+   "i18n": {
+    "de": {
+     "name": "Eis (3 Kugeln)"
+    },
+    "uk": {
+     "name": "Морозиво (3 кульки)"
+    }
+   }
+  },
+  {
+   "id": "b1",
+   "cat": "drinks",
+   "name": "Water 0.5 l",
+   "price": 2.5,
+   "station": "bar",
+   "i18n": {
+    "de": {
+     "name": "Wasser 0,5 l"
+    },
+    "uk": {
+     "name": "Вода 0,5 л"
+    }
+   }
+  },
+  {
+   "id": "b2",
+   "cat": "drinks",
+   "name": "Cola 0.33 l",
+   "price": 3.0,
+   "station": "bar",
+   "i18n": {
+    "de": {
+     "name": "Cola 0,33 l"
+    },
+    "uk": {
+     "name": "Кола 0,33 л"
+    }
+   }
+  },
+  {
+   "id": "b3",
+   "cat": "drinks",
+   "name": "Local lager 0.5 l",
+   "price": 4.5,
+   "station": "bar",
+   "i18n": {
+    "de": {
+     "name": "Helles Bier 0,5 l"
+    },
+    "uk": {
+     "name": "Світле пиво 0,5 л"
+    }
+   }
+  },
+  {
+   "id": "b4",
+   "cat": "drinks",
+   "name": "House red 0.2 l",
+   "price": 5.0,
+   "station": "bar",
+   "i18n": {
+    "de": {
+     "name": "Hauswein rot 0,2 l"
+    },
+    "uk": {
+     "name": "Домашнє червоне вино 0,2 л"
+    }
+   }
+  },
+  {
+   "id": "b5",
+   "cat": "drinks",
+   "name": "Espresso",
+   "price": 2.5,
+   "station": "bar",
+   "i18n": {
+    "de": {
+     "name": "Espresso"
+    },
+    "uk": {
+     "name": "Еспресо"
+    }
+   }
+  }
+ ]
 }

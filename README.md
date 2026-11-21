@@ -15,7 +15,7 @@ restaurant's own Wi-Fi.
 | ![waiter](docs/screenshots/waiter.png) | ![kitchen](docs/screenshots/kitchen.png) |
 
 More: [ordering](docs/screenshots/guest-menu.png), [cart](docs/screenshots/guest-cart.png), [bill](docs/screenshots/guest-bill.png),
-[German UI](docs/screenshots/guest-de.png), [table detail](docs/screenshots/waiter-table.png), [bar view](docs/screenshots/bar.png).
+[German guest UI](docs/screenshots/guest-de.png), [Ukrainian guest UI](docs/screenshots/guest-uk.png), [German waiter dashboard](docs/screenshots/waiter-de.png), [Ukrainian kitchen view](docs/screenshots/kitchen-uk.png), [table detail](docs/screenshots/waiter-table.png), [bar view](docs/screenshots/bar.png).
 (Screenshots are generated from the demo data by `npm run screenshots`.)
 
 ## Architecture
@@ -60,9 +60,12 @@ The hub is the only part that must be reliable, and it is plain Node.js with **n
 * **Waiter dashboard** (`/waiter`): table cards coloured by status (call, bill, waiter on the way, food ready, seated, free), running wait timers,
   one-tap "I'm coming" / "Done" / "Paid", "ready to serve" strip, per-table orders, waiters can add items themselves, flag a table manually,
   mark items sold out, see button signal strength, average response time and sales of the day. Optional sound alert.
-* **Guest page** (`/?t=7&k=…`, English/German/Ukrainian): call waiter (the same button turns into "Cancel call"), bill please, browse menu, order (with note), live order status
+* **Guest page** (`/?t=7&k=…`): call waiter (the same button turns into "Cancel call"), bill please, browse menu, order (with note), live order status
   (received, being prepared, ready, served), running bill, choose cash/card (payment-request flag for the waiter). Guests can cancel an order or change item quantities (− / +, down to 0 removes the item) until the kitchen starts that item; waiters can adjust quantities at any stage.
 * **Kitchen and bar views** (`/kitchen`, `/bar`): tickets with timers (turn amber/red when late), tap an item to advance it new → cooking → ready; drinks and food are routed by station. A "Sold out…" button lets the kitchen or bar mark items unavailable on the spot (also in the dashboard's Menu tab); guests see them greyed out within seconds.
+* **Languages**: guest page, waiter dashboard and kitchen/bar views speak English, German and Ukrainian (EN/DE/UK switch in the header; the choice is remembered per device, the default follows the phone's language).
+  Menu names are translated per item in `hub/menu.json` with an optional `"i18n": {"de": {"name": "…", "desc": "…"}, "uk": {…}}` block (categories: `"i18n": {"de": "…", "uk": "…"}`); anything missing falls back to the base text.
+  A guest orders in their language and the kitchen reads the same dish in theirs.
 * **Safeguards**: PIN for staff pages with login throttling, shared secret for nodes, per-table key for guests, server-side prices, rate limits.
   Optional `confirmOrders` makes every guest order wait for a waiter's confirmation (recommended if pranks are a concern).
 

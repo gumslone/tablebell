@@ -66,17 +66,25 @@ async function main() {
     await go('/?t=8');
     await js("localStorage.setItem('lang','de')"); await go('/?t=8');
     await shot('guest-de');
-    await js("localStorage.removeItem('lang')");
+    await js("localStorage.setItem('lang','uk')"); await go('/?t=3');
+    await shot('guest-uk');
 
     await desk(780);
+    await js("localStorage.removeItem('lang')");
     await go('/waiter');
     await shot('waiter');
+    await js("localStorage.setItem('lang','de')"); await go('/waiter');
+    await shot('waiter-de');
+    await js("localStorage.setItem('lang','en')"); await go('/waiter');
     await js("document.querySelector('.card[data-t=\"3\"]').click()");
     await desk(900);
     await shot('waiter-table');
     await desk(780);
     await go('/kitchen');
     await shot('kitchen');
+    await js("localStorage.setItem('lang','uk')"); await go('/kitchen');
+    await shot('kitchen-uk');
+    await js("localStorage.setItem('lang','en')");
     await go('/bar');
     await shot('bar');
     ws.close();

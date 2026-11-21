@@ -23,16 +23,17 @@
 .leg{display:flex;gap:8px;flex-wrap:wrap;padding:8px 12px;font-size:12px;color:var(--mut)}.leg i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px}
 </style></head>
 <body>
-<div class="top"><h1 id="rest">Waiter</h1><div class="stats" id="stats"></div><span class="sp"></span><button id="snd" class="ghost">🔇 Sound off</button></div>
-<div class="tabs"><button class="on" id="tTables">Tables</button><button id="tMenu">Menu availability</button></div>
+<div class="top"><h1 id="rest">Waiter</h1><div class="stats" id="stats"></div><span class="sp"></span><span id="langs"></span><button id="snd" class="ghost">🔇</button></div>
+<div class="tabs"><button class="on" id="tTables"></button><button id="tMenu"></button></div>
 <div id="vTables"><div id="readyBox"></div><div class="grid" id="grid"></div>
-<div class="leg"><span><i style="background:var(--call)"></i>call</span><span><i style="background:var(--bill)"></i>bill</span><span><i style="background:var(--ack)"></i>waiter on the way</span><span><i style="background:var(--ready)"></i>food ready</span><span><i style="background:var(--occ)"></i>seated</span><span><i style="background:#1d2632"></i>free</span></div></div>
+<div class="leg" id="leg"></div></div>
 <div id="vMenu" class="hidden"></div>
 <div class="sheet hidden" id="sheet"><div class="det" id="det"></div></div>
 <script src="common.js"></script>
 <script>
 let lastSig = '', S = null, sound = false, known = new Set(), open = null, adding = null;
-const LABEL = { call: 'CALL', bill: 'BILL', acked: 'ON THE WAY', ready: 'FOOD READY', occupied: 'SEATED', free: 'free' };
+const label = (st) => ({ call: tt('CALL'), bill: tt('BILL'), acked: tt('acked'), ready: tt('ready'), occupied: tt('occupied'), free: tt('free') }[st]);
+const nm = (i) => lineName(S.menu, i.id, i.name);
 
 async function poll() {
   let r;
@@ -47,19 +48,19 @@ async function poll() {
 const tableAge = (t) => t.call ? (nowMs() - t.call.since) / 1000 : 0;
 function draw() {
   const st = S.stats, calls = S.tables.filter((t) => t.call).length;
-  $('#stats').innerHTML = `<span>Open calls <b>${calls}</b></span><span>Avg response today <b>${st.avgResponseSec == null ? '–' : dur(st.avgResponseSec)}</b></span><span>Sales today <b>${money(st.salesToday, S.currency)}</b> (${st.tablesPaid} tables)</span>`;
+  $('#stats').innerHTML = `<span>${esc(tt('openCalls'))} <b>${calls}</b></span><span>${esc(tt('avgResp'))} <b>${st.avgResponseSec == null ? '–' : dur(st.avgResponseSec)}</b></span><span>${esc(tt('salesToday'))} <b>${money(st.salesToday, S.currency)}</b> (${st.tablesPaid} ${esc(tt('nTables'))})</span>`;
   const ready = S.tables.flatMap((t) => t.orders.flatMap((o) => o.items.filter((i) => i.st === 'ready').map((i) => ({ t: t.t, i }))));
-  $('#readyBox').innerHTML = ready.length ? `<div class="rl">🍽 Ready to serve: ${ready.map((r) => `<b>T${r.t}</b> ${r.i.qty}× ${esc(r.i.name)}`).join(' · ')}</div>` : '';
+  $('#readyBox').innerHTML = ready.length ? `<div class="rl">${esc(tt('readyServe'))} ${ready.map((r) => `<b>T${r.t}</b> ${r.i.qty}× ${esc(nm(r.i))}`).join(' · ')}</div>` : '';
   const prio = { call: 0, bill: 1, acked: 2, ready: 3, occupied: 4, free: 5 };
   const tables = [...S.tables].sort((a, b) => prio[a.status] - prio[b.status] || (a.call ? a.call.since - b.call.since : a.t - b.t));
   $('#grid').innerHTML = tables.map((t) => {
     const c = t.call, open = t.orders.some((o) => o.items.some((i) => i.st === 'held'));
     return `<div class="card ${t.status}" data-t="${t.t}">
-      ${t.node && !t.node.online ? '<span class="off">button offline</span>' : ''}
-      <div class="no">${t.t}</div><div class="what">${LABEL[t.status]}${t.payReq ? ' · ' + t.payReq : ''}</div>
+      ${t.node && !t.node.online ? `<span class="off">${esc(tt('btnOffline'))}</span>` : ''}
+      <div class="no">${t.t}</div><div class="what">${esc(label(t.status))}${t.payReq ? ' · ' + tt(t.payReq) : ''}</div>
       ${c ? `<div class="tm" data-since="${c.since}">${dur(tableAge(t))}</div>` : ''}
-      <div class="sub">${t.total ? money(t.total, S.currency) : ''}${open ? ' · needs confirm' : ''}</div>
-      <div class="acts">${c && !c.ackAt ? `<button data-a="ack">I’m coming</button>` : ''}${c && c.ackAt ? `<button data-a="clear">Done</button>` : ''}${t.status === 'bill' || (c && c.type === 'bill' && c.ackAt) || t.payReq ? `<button data-a="paid">Paid</button>` : ''}</div></div>`;
+      <div class="sub">${t.total ? money(t.total, S.currency) : ''}${open ? ' · ' + tt('needsConfirm') : ''}</div>
+      <div class="acts">${c && !c.ackAt ? `<button data-a="ack">${esc(tt('coming'))}</button>` : ''}${c && c.ackAt ? `<button data-a="clear">${esc(tt('done'))}</button>` : ''}${t.status === 'bill' || (c && c.type === 'bill' && c.ackAt) || t.payReq ? `<button data-a="paid">${esc(tt('paid'))}</button>` : ''}</div></div>`;
   }).join('');
   $('#grid').querySelectorAll('.card').forEach((el) => {
     el.onclick = (e) => {
@@ -71,20 +72,20 @@ function draw() {
   if (!$('#vMenu').classList.contains('hidden')) drawMenu();
 }
 async function act(a, t) {
-  if (a === 'paid' && !confirm(`Table ${t} paid? This closes the bill.`)) return;
+  if (a === 'paid' && !confirm(`${tt('table')} ${t} ${tt('confirmPaid')}`)) return;
   const r = await Staff.post('/api/staff/' + a, { t }); if (r.ok) { S = r.json.state; draw(); }
 }
 function drawSheet(keep) {
   const t = S.tables.find((x) => x.t === open); if (!t) return;
   if (keep && adding) return; // don't redraw underneath an open add-item picker
   $('#sheet').classList.remove('hidden');
-  const its = t.orders.map((o) => `<div class="mut" style="margin-top:8px;font-size:12px">Order #${o.id} · ${o.by}${o.note ? ' · “' + esc(o.note) + '”' : ''}${o.items.some((i) => i.st === 'held') ? ` <button data-conf="${o.id}" class="warn" style="min-height:30px">Confirm</button>` : ''}</div>` +
-    o.items.map((i, idx) => `<div class="it"><span class="sp">${i.qty}× ${esc(i.name)}</span><span class="st-${i.st}">${i.st}</span>${i.st !== 'cancelled' ? `<button class="ghost" data-q="${o.id}:${idx}:${i.qty - 1}">−</button><button class="ghost" data-q="${o.id}:${idx}:${i.qty + 1}">+</button>` : ''}${i.st === 'ready' ? `<button class="ok" data-o="${o.id}" data-i="${idx}">Served</button>` : ''}${i.st !== 'cancelled' && i.st !== 'served' && i.st !== 'ready' ? `<button class="ghost" data-o="${o.id}" data-i="${idx}" data-to="cancelled">✕</button>` : ''}</div>`).join('')).join('');
-  $('#det').innerHTML = `<div class="row"><h2 class="sp">Table ${t.t}</h2><button class="ghost" id="xc">Close</button></div>
-    <div class="mut" style="font-size:13px">${t.node ? (t.node.online ? `Button online · ${t.node.rssi} dBm · ${t.node.vcc.toFixed ? t.node.vcc.toFixed(2) : t.node.vcc} V` : 'Button offline') : 'No button node seen yet'} · guest link key <code>${esc(t.key)}</code></div>
-    ${its || '<p class="mut">No orders.</p>'}
-    <div class="line row" style="margin-top:10px;font-weight:700"><span class="sp">Total</span><span>${money(t.total, S.currency)}</span></div>
-    <div class="row" style="margin-top:12px;flex-wrap:wrap"><button class="pri" id="ad">+ Add items</button><button class="warn" id="fc">Flag: call</button><button class="warn" id="fb">Flag: bill</button><button class="ok" id="pd">Paid</button></div>`;
+  const its = t.orders.map((o) => `<div class="mut" style="margin-top:8px;font-size:12px">${esc(tt('order'))} #${o.id} · ${esc(tt(o.by === 'guest' ? 'guest' : 'waiterBy'))}${o.note ? ' · “' + esc(o.note) + '”' : ''}${o.items.some((i) => i.st === 'held') ? ` <button data-conf="${o.id}" class="warn" style="min-height:30px">${esc(tt('confirm'))}</button>` : ''}</div>` +
+    o.items.map((i, idx) => `<div class="it"><span class="sp">${i.qty}× ${esc(nm(i))}</span><span class="st-${i.st}">${esc(tt('s_' + i.st))}</span>${i.st !== 'cancelled' ? `<button class="ghost" data-q="${o.id}:${idx}:${i.qty - 1}">−</button><button class="ghost" data-q="${o.id}:${idx}:${i.qty + 1}">+</button>` : ''}${i.st === 'ready' ? `<button class="ok" data-o="${o.id}" data-i="${idx}">${esc(tt('served'))}</button>` : ''}${i.st !== 'cancelled' && i.st !== 'served' && i.st !== 'ready' ? `<button class="ghost" data-o="${o.id}" data-i="${idx}" data-to="cancelled">✕</button>` : ''}</div>`).join('')).join('');
+  $('#det').innerHTML = `<div class="row"><h2 class="sp">${esc(tt('table'))} ${t.t}</h2><button class="ghost" id="xc">${esc(tt('close'))}</button></div>
+    <div class="mut" style="font-size:13px">${t.node ? (t.node.online ? `${tt('btnOnline')} · ${t.node.rssi} dBm · ${t.node.vcc.toFixed ? t.node.vcc.toFixed(2) : t.node.vcc} V` : tt('btnOff')) : tt('noNode')} · ${esc(tt('guestKey'))} <code>${esc(t.key)}</code></div>
+    ${its || `<p class="mut">${esc(tt('noOrders'))}</p>`}
+    <div class="line row" style="margin-top:10px;font-weight:700"><span class="sp">${esc(tt('total'))}</span><span>${money(t.total, S.currency)}</span></div>
+    <div class="row" style="margin-top:12px;flex-wrap:wrap"><button class="pri" id="ad">${esc(tt('addItems'))}</button><button class="warn" id="fc">${esc(tt('flagCall'))}</button><button class="warn" id="fb">${esc(tt('flagBill'))}</button><button class="ok" id="pd">${esc(tt('paid'))}</button></div>`;
   $('#xc').onclick = () => { open = null; adding = null; $('#sheet').classList.add('hidden'); };
   $('#fc').onclick = () => act('call', t.t); $('#fb').onclick = async () => { const r = await Staff.post('/api/staff/call', { t: t.t, type: 'bill' }); if (r.ok) { S = r.json.state; draw(); } };
   $('#pd').onclick = async () => { await act('paid', t.t); open = null; $('#sheet').classList.add('hidden'); };
@@ -96,27 +97,33 @@ function drawSheet(keep) {
 function addPicker(t) {
   adding = {};
   const render = () => {
-    $('#det').innerHTML = `<div class="row"><h2 class="sp">Add to table ${t.t}</h2><button class="ghost" id="ab">Back</button></div>` +
-      S.menu.filter((m) => m.avail).map((m) => `<div class="mi"><span class="sp">${esc(m.name)} <span class="mut">${money(m.price, S.currency)}</span></span><button data-m="${m.id}" class="ghost">−</button><b>${adding[m.id] || 0}</b><button data-p="${m.id}">+</button></div>`).join('') +
-      `<button class="pri" id="as" style="width:100%;margin-top:12px">Send to kitchen/bar</button>`;
+    $('#det').innerHTML = `<div class="row"><h2 class="sp">${esc(tt('addTo'))} ${t.t}</h2><button class="ghost" id="ab">${esc(tt('back'))}</button></div>` +
+      S.menu.filter((m) => m.avail).map((m) => `<div class="mi"><span class="sp">${esc(mItem(m).name)} <span class="mut">${money(m.price, S.currency)}</span></span><button data-m="${m.id}" class="ghost">−</button><b>${adding[m.id] || 0}</b><button data-p="${m.id}">+</button></div>`).join('') +
+      `<button class="pri" id="as" style="width:100%;margin-top:12px">${esc(tt('sendKb'))}</button>`;
     $('#ab').onclick = () => { adding = null; drawSheet(); };
     $('#det').querySelectorAll('[data-p]').forEach((b) => { b.onclick = () => { adding[b.dataset.p] = (adding[b.dataset.p] || 0) + 1; render(); }; });
     $('#det').querySelectorAll('[data-m]').forEach((b) => { b.onclick = () => { if (adding[b.dataset.m] > 0) adding[b.dataset.m]--; render(); }; });
     $('#as').onclick = async () => {
       const items = Object.entries(adding).filter(([, q]) => q > 0).map(([id, qty]) => ({ id, qty }));
       if (!items.length) return;
-      const r = await Staff.post('/api/staff/order', { t: t.t, items }); if (r.ok) { S = r.json.state; adding = null; draw(); drawSheet(); } else toast('Could not send');
+      const r = await Staff.post('/api/staff/order', { t: t.t, items }); if (r.ok) { S = r.json.state; adding = null; draw(); drawSheet(); } else toast(tt('sendFail'));
     };
   };
   render();
 }
 function drawMenu() {
-  $('#vMenu').innerHTML = S.menu.map((m) => `<div class="mi"><span class="sp">${esc(m.name)} <span class="mut">${esc(m.station)}</span></span><span class="pill" style="background:${m.avail ? 'var(--ok)' : 'var(--call)'};color:#fff">${m.avail ? 'available' : 'sold out'}</span><button data-id="${m.id}" data-av="${m.avail ? 0 : 1}">${m.avail ? 'Mark sold out' : 'Mark available'}</button></div>`).join('');
+  $('#vMenu').innerHTML = S.menu.map((m) => `<div class="mi"><span class="sp">${esc(mItem(m).name)} <span class="mut">${esc(tt(m.station))}</span></span><span class="pill" style="background:${m.avail ? 'var(--ok)' : 'var(--call)'};color:#fff">${esc(m.avail ? tt('available') : tt('soldOut'))}</span><button data-id="${m.id}" data-av="${m.avail ? 0 : 1}">${esc(m.avail ? tt('markSold') : tt('markAvail'))}</button></div>`).join('');
   $('#vMenu').querySelectorAll('button').forEach((b) => { b.onclick = async () => { const r = await Staff.post('/api/staff/avail', { id: b.dataset.id, avail: b.dataset.av === '1' }); if (r.ok) { S = r.json.state; draw(); } }; });
 }
-$('#snd').onclick = () => { sound = !sound; $('#snd').textContent = sound ? '🔔 Sound on' : '🔇 Sound off'; if (sound) beep(1); };
+$('#snd').onclick = () => { sound = !sound; setSnd(); if (sound) beep(1); };
 $('#tTables').onclick = () => { $('#vTables').classList.remove('hidden'); $('#vMenu').classList.add('hidden'); $('#tTables').classList.add('on'); $('#tMenu').classList.remove('on'); };
 $('#tMenu').onclick = () => { $('#vMenu').classList.remove('hidden'); $('#vTables').classList.add('hidden'); $('#tMenu').classList.add('on'); $('#tTables').classList.remove('on'); if (S) drawMenu(); };
+function setSnd() { $('#snd').textContent = tt(sound ? 'soundOn' : 'soundOff'); }
+function statics() {
+  $('#tTables').textContent = tt('tables'); $('#tMenu').textContent = tt('menuAvail'); setSnd();
+  $('#leg').innerHTML = [['call', 'lCall'], ['bill', 'lBill'], ['ack', 'lAcked'], ['ready', 'lReady'], ['occ', 'lSeated']].map(([c, k]) => `<span><i style="background:var(--${c})"></i>${esc(tt(k))}</span>`).join('') + `<span><i style="background:#1d2632"></i>${esc(tt('lFree'))}</span>`;
+}
+statics(); langSwitch(() => { statics(); if (S) draw(); });
 poll(); setInterval(poll, 1500);
 setInterval(() => { document.querySelectorAll('[data-since]').forEach((e) => { e.textContent = dur((nowMs() - Number(e.dataset.since)) / 1000); }); }, 1000);
 </script></body></html>
