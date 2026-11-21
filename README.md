@@ -1,4 +1,4 @@
-<p align="center"><img src="docs/logo.png" alt="Tablebell" width="320"></p>
+<p align="center"><img src="docs/social-preview.png" alt="Tablebell: offline table service for restaurants" width="800"></p>
 
 <table><tr><td valign="top">
 
