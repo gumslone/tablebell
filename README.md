@@ -1,4 +1,4 @@
-# Tablebell
+<p align="center"><img src="docs/logo.png" alt="Tablebell" width="320"></p>
 
 <table><tr><td valign="top">
 
