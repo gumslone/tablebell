@@ -18,8 +18,8 @@ Tick every box. If one fails, the troubleshooting list at the bottom covers the 
 - [ ] **Short press** (< 1.5 s): LED lights solid for a moment, the table card turns red "CALL" with a running timer, the buzzer (if fitted) chirps, the dashboard beeps (sound enabled).
 - [ ] Waiter taps "I'm coming": within ~4 s the LED turns solid and the card turns purple.
 - [ ] "Done" clears the card and the LED goes back to the idle tick.
-- [ ] **Hold 1.5 s**: card turns orange "BILL"; LED shows the double pulse. A call that was pending is upgraded, its timer is not reset.
-- [ ] **Hold 5 s** while a request is open (answered or not): the request disappears and the LED goes idle.
+- [ ] **Hold 1.5 s** (buzzer chirps once at 1.5 s), then release: card turns orange "BILL"; LED shows the double pulse. A call that was pending is upgraded, its timer is not reset.
+- [ ] **Hold 5 s** while a request is open (answered or not): the request disappears and the LED goes idle. No "BILL" card flashes up on the dashboard while you hold.
 - [ ] Press the button 10 times quickly: only one entry appears, nothing crashes.
 - [ ] Table number on the card equals the number printed on the node. (Wrong `TABLE_ID` flashed is the most common mistake.)
 

@@ -1,0 +1,78 @@
+name: Release
+
+# Push a tag like v1.0.0 to build every firmware target and publish a GitHub release.
+#   git tag v1.0.0 && git push origin v1.0.0
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - run: node --test hub/test/hub.test.js
+      - run: |
+          g++ -std=c++17 -O1 -Wall -Wextra -Wshadow -Werror -Ifirmware/table_node tests/native/test_button.cpp -o tc_test
+          ./tc_test
+
+  firmware:
+    needs: tests
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        env: [esp01_1m, nodemcuv2, esp32dev, esp32c3]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/cache@v6
+        with:
+          path: ~/.platformio
+          key: pio-${{ matrix.env }}-${{ hashFiles('platformio.ini') }}
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: pip install platformio
+      - run: pio run -e ${{ matrix.env }}
+      - run: cp .pio/build/${{ matrix.env }}/firmware.bin tablebell-${{ matrix.env }}-${{ github.ref_name }}.bin
+      - uses: actions/upload-artifact@v7
+        with:
+          name: fw-${{ matrix.env }}
+          path: tablebell-*.bin
+
+  release:
+    needs: firmware
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: fw-*
+          merge-multiple: true
+          path: release
+      - name: Package the hub
+        run: git archive --format=tar.gz --prefix=tablebell-${{ github.ref_name }}/ -o release/tablebell-hub-${{ github.ref_name }}.tar.gz HEAD hub deploy docs README.md LICENSE package.json
+      - name: Checksums
+        working-directory: release
+        run: sha256sum * > SHA256SUMS
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cat > notes.md <<'NOTES'
+          ## What is in this release
+
+          - `tablebell-hub-*.tar.gz`: the hub (Node.js 18+, no dependencies), deploy scripts and docs.
+          - `tablebell-<board>-*.bin`: table node firmware **built with the example defaults** (table 1,
+            Wi-Fi `Tablebell`, default node key). Wi-Fi credentials, hub address, node key and table number are
+            compiled in, so for a real restaurant build your own with `tools/flash.sh -t <table>` (see README).
+            These binaries are for trying the hardware and checking your board works.
+          - `SHA256SUMS`: checksums of all files.
+          NOTES
+          gh release create "${{ github.ref_name }}" release/* --title "${{ github.ref_name }}" --notes-file notes.md --generate-notes

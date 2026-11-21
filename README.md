@@ -55,7 +55,7 @@ The hub is the only part that must be reliable, and it is plain Node.js with **n
 
 ## Features
 
-* **Table button**: short press = call waiter, hold 1.5 s = bill please, hold 5 s = cancel the open request (even after the waiter said "I'm coming"). Debounced, rate limited.
+* **Table button**: short press = call waiter, hold 1.5 s (a chirp tells you) and release = bill please, keep holding to 5 s = cancel the open request (no bill alarm is sent) (even after the waiter said "I'm coming"). Debounced, rate limited.
   LED feedback: solid on press, fast blink = call pending, double pulse = bill pending, solid = "waiter is coming", two blinks = hub unreachable. Optional buzzer.
 * **Waiter dashboard** (`/waiter`): table cards coloured by status (call, bill, waiter on the way, food ready, seated, free), running wait timers,
   one-tap "I'm coming" / "Done" / "Paid", "ready to serve" strip, per-table orders, waiters can add items themselves, flag a table manually,

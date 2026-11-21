@@ -33,17 +33,19 @@ int main() {
     auto g = run(b, t, false, 100);
     CHECK(g.size() == 1 && g[0] == Gesture::Call);
   }
-  { // hold >= 1.5 s -> Bill while still held, no Call on release
+  { // hold >= 1.5 s, release -> Bill (nothing while held)
     Button b; uint32_t t = 0;
-    auto g = run(b, t, true, 1600);
+    CHECK(run(b, t, true, 1600).empty());
+    CHECK(b.longReached());
+    auto g = run(b, t, false, 200);
     CHECK(g.size() == 1 && g[0] == Gesture::Bill);
-    CHECK(b.inLongPress());
-    CHECK(run(b, t, false, 200).empty());
+    CHECK(!b.longReached());
   }
-  { // keep holding to 5 s -> Cancel after the Bill
+  { // keep holding to 5 s -> only Cancel, never a Bill; release adds nothing
     Button b; uint32_t t = 0;
     auto g = run(b, t, true, 5200);
-    CHECK(g.size() == 2 && g[0] == Gesture::Bill && g[1] == Gesture::Cancel);
+    CHECK(g.size() == 1 && g[0] == Gesture::Cancel);
+    CHECK(!b.longReached());
     CHECK(run(b, t, false, 200).empty());
   }
   { // millis() wrap-around does not break a press

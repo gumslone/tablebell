@@ -31,14 +31,14 @@
 <div class="sheet hidden" id="sheet"><div class="det" id="det"></div></div>
 <script src="common.js"></script>
 <script>
-let S = null, sound = false, known = new Set(), open = null, adding = null;
+let lastSig = '', S = null, sound = false, known = new Set(), open = null, adding = null;
 const LABEL = { call: 'CALL', bill: 'BILL', acked: 'ON THE WAY', ready: 'FOOD READY', occupied: 'SEATED', free: 'free' };
 
 async function poll() {
   let r;
   try { r = await Staff.get('/api/staff/state'); } catch { return; }
   if (r.status === 401) { if (!$('.sheet #pin')) pinGate(poll); return; }
-  S = r.json; syncClock(S.now); $('#rest').textContent = S.restaurant; draw();
+  syncClock(r.json.now); const sig = JSON.stringify({ ...r.json, now: 0 }, (k, v) => (k === 'seen' ? undefined : v)); if (S && sig === lastSig) return; lastSig = sig; S = r.json; $('#rest').textContent = S.restaurant; draw();
   // Beep for every call that was not there before.
   const cur = new Set(S.tables.filter((t) => t.call && !t.call.ackAt).map((t) => t.t + ':' + t.call.type + ':' + t.call.since));
   if (sound && [...cur].some((k) => !known.has(k))) beep(3);

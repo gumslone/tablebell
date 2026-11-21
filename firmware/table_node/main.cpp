@@ -153,6 +153,10 @@ void loop() {
   if (g == Gesture::Call) enqueue(1, now);
   else if (g == Gesture::Bill) enqueue(2, now);
   else if (g == Gesture::Cancel) { enqueue(3, now); beepMs(250); }
+  // One short chirp the moment the hold counts as "bill" (release now = bill, keep holding = cancel).
+  static bool wasLong = false;
+  if (button.longReached() && !wasLong) { beepMs(40); feedbackUntil = now + 300; }
+  wasLong = button.longReached();
   keepWifi(now);
   pump(now);
   updateLed(now);

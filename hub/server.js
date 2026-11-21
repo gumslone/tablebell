@@ -101,7 +101,10 @@ function createHub(opts = {}) {
   function raise(t, type, src) {
     const T = state.tables[t];
     const now = clock();
-    if (!T.call || T.call.ackAt) { T.call = { type, since: now, ackAt: null, src }; }
+    if (!T.call || T.call.ackAt) {
+      if (T.call) endCall(t, 'replaced'); // keep the answered call in the response-time history
+      T.call = { type, since: now, ackAt: null, src };
+    }
     else if (type === 'bill' && T.call.type !== 'bill') { T.call.type = 'bill'; T.call.src = src; }
     save();
   }
@@ -196,10 +199,9 @@ function createHub(opts = {}) {
           else if (body.ev === 'cancel') { if (T.call) endCall(tNum, 'cancel'); }
           else return send(res, 400, { ok: 0, err: 'ev' });
         }
-        save();
         return send(res, 200, { ok: 1, dup: dup ? 1 : 0, st: nodeState(tNum) });
       }
-      if (p === '/api/node/hb') { save(); return send(res, 200, { ok: 1, st: nodeState(tNum), now: Math.floor(clock() / 1000) }); }
+      if (p === '/api/node/hb') { return send(res, 200, { ok: 1, st: nodeState(tNum), now: Math.floor(clock() / 1000) }); }
       return send(res, 404, { ok: 0 });
     }
 

@@ -155,3 +155,19 @@ test('a call or bill can be cancelled by guest or button, even after the waiter 
   assert.equal(s.hub.state().tables[1].payReq, null);
   assert.equal(s.hub.state().history.at(-1).reason, 'cancel');
 });
+
+test('heartbeats do not rewrite the state file; a new call after an answered one keeps the old in history', async (t) => {
+  const s = await start(); t.after(s.close);
+  s.hub.flush();
+  const f = path.join(s.dir, 'state.json');
+  const before = fs.statSync(f).mtimeMs;
+  await new Promise((r) => setTimeout(r, 30));
+  for (let i = 0; i < 5; i++) await s.node('/api/node/hb', { t: 1 });
+  await new Promise((r) => setTimeout(r, 600));
+  assert.equal(fs.statSync(f).mtimeMs, before);
+  await s.node('/api/node/event', { t: 1, ev: 'call', id: 1 });
+  await s.staff('/api/staff/ack', { t: 1 });
+  await s.node('/api/node/event', { t: 1, ev: 'call', id: 2 });
+  assert.equal(s.hub.state().history.at(-1).reason, 'replaced');
+  assert.equal(s.hub.state().tables[1].call.ackAt, null);
+});
